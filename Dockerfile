@@ -23,6 +23,10 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor
 RUN pecl install sqlsrv pdo_sqlsrv \
     && docker-php-ext-enable sqlsrv pdo_sqlsrv
 
+# Allow Legacy SSL Protocols (TLS 1.0/1.1) for old MSSQL Servers
+RUN sed -i 's/SECLEVEL=2/SECLEVEL=0/g' /etc/ssl/openssl.cnf
+
+
 
 
 # Clear cache
