@@ -13,6 +13,10 @@ class WebController extends Controller
 
     public function monthlyReportView()
     {
-        return view('reports.monthly');
+    public function monthlyReportView()
+    {
+        $serverDate = \Carbon\Carbon::now()->format('Y-m');
+        return view('reports.monthly', compact('serverDate'));
+    }
     }
 }

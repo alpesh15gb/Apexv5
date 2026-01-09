@@ -52,11 +52,11 @@
                             <template x-for="day in daysInMonth" :key="day">
                                 <td class="px-1 py-2 text-center border-l border-slate-100">
                                     <span class="inline-block w-6 h-6 leading-6 rounded-full text-[10px] font-bold" :class="{
-                                                'bg-green-100 text-green-700': emp.days[day] === 'P',
-                                                'bg-red-100 text-red-700': emp.days[day] === 'A',
-                                                'bg-yellow-100 text-yellow-700': emp.days[day] === 'L',
-                                                'text-slate-300': !['P','A','L'].includes(emp.days[day])
-                                            }" x-text="emp.days[day] || '-'">
+                                                    'bg-green-100 text-green-700': emp.days[day] === 'P',
+                                                    'bg-red-100 text-red-700': emp.days[day] === 'A',
+                                                    'bg-yellow-100 text-yellow-700': emp.days[day] === 'L',
+                                                    'text-slate-300': !['P','A','L'].includes(emp.days[day])
+                                                }" x-text="emp.days[day] || '-'">
                                     </span>
                                 </td>
                             </template>
@@ -77,7 +77,7 @@
     <script>
         function monthlyRegister() {
             return {
-                selectedMonth: new Date().toISOString().slice(0, 7), // YYYY-MM
+                selectedMonth: '{{ $serverDate }}', // Initialize with server date
                 loading: false,
                 reportData: [],
                 daysInMonth: [],
