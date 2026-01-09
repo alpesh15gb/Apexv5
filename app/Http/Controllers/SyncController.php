@@ -18,8 +18,7 @@ class SyncController extends Controller
     public function store(Request $request)
     {
         // 1. Simple Token Authentication
-        // In production, use Sanctum or a dedicated API Token middleware
-        $token = $request->input('token');
+        $token = $request->bearerToken() ?? $request->input('token');
         if ($token !== env('SYNC_API_TOKEN', 'secret-token')) {
             Log::warning('Unauthorized sync attempt.');
             return response()->json(['message' => 'Unauthorized'], 401);

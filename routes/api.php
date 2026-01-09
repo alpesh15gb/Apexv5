@@ -24,3 +24,4 @@ Route::get('/reports/monthly', [ReportController::class, 'monthlyRegister']);
 
 use App\Http\Controllers\SyncController;
 Route::post('/punches/sync', [SyncController::class, 'store']);
+Route::post('/punches/import', [SyncController::class, 'store']);
