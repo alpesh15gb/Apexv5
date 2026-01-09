@@ -120,6 +120,7 @@ class PunchImportService
             $normalizedId = ltrim($deviceLogId, '0');
             $employee = Employee::where('device_emp_code', $normalizedId)
                 ->orWhere('device_emp_code', 'HO/' . str_pad($normalizedId, 3, '0', STR_PAD_LEFT))
+                ->orWhere('device_emp_code', 'MIPA' . $normalizedId)
                 ->orWhere('device_emp_code', intval($deviceLogId))
                 ->first();
         }
