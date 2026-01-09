@@ -56,13 +56,14 @@ class SyncEtimetrack extends Command
         $mssqlCompanies = DB::connection('sqlsrv')->table('Companies')->get();
 
         foreach ($mssqlCompanies as $source) {
-            $code = $source->CompanyCode ?? $source->CompanyId; // Fallback if Code is null
+            $code = $source->CompanyId; // Use ID as code since no CompanyCode exists
+            $name = trim(($source->CompanyFName ?? '') . ' ' . ($source->CompanySName ?? ''));
 
             Company::updateOrCreate(
                 ['code' => $code],
                 [
-                    'name' => $source->CompanyName,
-                    'address' => $source->Address1 ?? null,
+                    'name' => $name ?: 'Company ' . $code,
+                    'address' => $source->CompanyAddress ?? null,
                 ]
             );
         }
@@ -80,19 +81,20 @@ class SyncEtimetrack extends Command
             // We need to fetch the Source Company Code to match. 
             // If MSSQL Departments table has CompanyId, we assume we can fetch that Company.
 
-            $sourceCompany = DB::connection('sqlsrv')->table('Companies')
-                ->where('CompanyId', $source->CompanyId)
+            // Departments don't have CompanyId - infer from first Employee using this Department
+            $sampleEmployee = DB::connection('sqlsrv')->table('Employees')
+                ->where('DepartmentId', $source->DepartmentId)
                 ->first();
 
-            if (!$sourceCompany) {
-                $this->warn("Skipping Department {$source->DepartmentName}: Source Company ID {$source->CompanyId} not found.");
+            if (!$sampleEmployee) {
+                $this->warn("Skipping Department {$source->DepartmentId}: No employees found to infer company.");
                 continue;
             }
 
-            $company = Company::where('code', $sourceCompany->CompanyCode ?? $sourceCompany->CompanyId)->first();
+            $company = Company::where('code', $sampleEmployee->CompanyId)->first();
 
             if (!$company) {
-                $this->warn("Skipping Department {$source->DepartmentName}: Local Company not found.");
+                $this->warn("Skipping Department {$source->DepartmentId}: Local Company not found.");
                 continue;
             }
 
@@ -109,10 +111,11 @@ class SyncEtimetrack extends Command
             );
 
             // 4. Upsert Department
+            $deptName = trim(($source->DepartmentFName ?? '') . ' ' . ($source->DepartmentSName ?? ''));
             Department::updateOrCreate(
-                ['code' => $source->DepartmentCode ?? $source->DepartmentId],
+                ['code' => $source->DepartmentId],
                 [
-                    'name' => $source->DepartmentName,
+                    'name' => $deptName ?: 'Department ' . $source->DepartmentId,
                     'location_id' => $location->id
                 ]
             );
@@ -133,25 +136,25 @@ class SyncEtimetrack extends Command
 
             $deptId = null;
             if ($sourceDept) {
-                $localDept = Department::where('code', $sourceDept->DepartmentCode ?? $sourceDept->DepartmentId)->first();
+                $localDept = Department::where('code', $sourceDept->DepartmentId)->first();
                 $deptId = $localDept?->id;
             }
 
-            // Create/Update Employee
-            // Use EmployeeCode as device_emp_code
-            $empCode = $source->EmployeeCode;
+            // Skip if no department found (department_id is required)
+            if (!$deptId) {
+                $this->warn("Skipping Employee {$source->EmployeeCode}: No department mapping found.");
+                continue;
+            }
 
+            // Create/Update Employee
             Employee::updateOrCreate(
-                ['device_emp_code' => $empCode],
+                ['device_emp_code' => $source->EmployeeCode],
                 [
                     'name' => $source->EmployeeName,
-                    'is_active' => $source->RecStatus == 0 ? false : true, // Assuming RecStatus: 1=Active
-                    'department_id' => $deptId ?? 1, // Fallback to ID 1 if dept missing? Or nullable? Schema says required. 
-                    // Ideally we shouldn't fail validation. I'll fetch first dept as fallback or null if schema allows.
-                    // Schema says: foreignId('department_id')->constrained(). So it is REQUIRED.
-                    // I will skip if no department found.
+                    'is_active' => $source->RecordStatus == 1, // 1=Active, others inactive
+                    'department_id' => $deptId,
                     'email' => $source->Email ?? null,
-                    'joining_date' => $source->JoiningDate ?? null,
+                    'joining_date' => $source->DOJ ?? null,
                 ]
             );
         }
