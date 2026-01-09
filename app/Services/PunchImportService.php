@@ -15,6 +15,18 @@ class PunchImportService
      * 
      * @return int Number of records imported
      */
+    protected $attendanceService;
+
+    public function __construct(AttendanceService $attendanceService)
+    {
+        $this->attendanceService = $attendanceService;
+    }
+
+    /**
+     * Import new punches from MSSQL source
+     * 
+     * @return int Number of records imported
+     */
     public function importPunches()
     {
         Log::info('Starting punch import from MSSQL...');
@@ -22,6 +34,8 @@ class PunchImportService
         // Get last imported punch time to allow incremental sync
         $lastPunch = PunchLog::orderBy('punch_time', 'desc')->first();
         $startTime = $lastPunch ? $lastPunch->punch_time : Carbon::now()->subDays(30); // Default to last 30 days if empty
+
+        $affectedDates = [];
 
         try {
             // Fetch raw logs from MSSQL
@@ -31,11 +45,18 @@ class PunchImportService
                 ->table('DeviceLogs_Processed') // Adjust table name if needed
                 ->where('LogDate', '>', $startTime)
                 ->orderBy('LogDate', 'asc')
-                ->chunk(500, function ($punches) {
+                ->chunk(500, function ($punches) use (&$affectedDates) {
                     foreach ($punches as $punch) {
                         $this->processPunch($punch);
+                        $date = Carbon::parse($punch->LogDate)->toDateString();
+                        $affectedDates[$date] = true;
                     }
                 });
+
+            // Recalculate attendance for affected dates
+            foreach (array_keys($affectedDates) as $date) {
+                $this->attendanceService->calculateDailyAttendance($date);
+            }
 
             Log::info('Punch import completed successfully.');
 
@@ -52,6 +73,7 @@ class PunchImportService
     {
         Log::info('Processing batch of ' . count($punches) . ' punches from API.');
         $count = 0;
+        $affectedDates = [];
 
         foreach ($punches as $punch) {
             // Convert array to object to match existing processPunch expectation
@@ -62,7 +84,20 @@ class PunchImportService
             // Assuming Local Agent sends raw MSSQL columns: LogDate, DeviceId, UserId
 
             $this->processPunch($punchObj);
+
+            // Track affected dates
+            $punchTime = $punchObj->punch_time ?? $punchObj->LogDate ?? null;
+            if ($punchTime) {
+                $date = Carbon::parse($punchTime)->toDateString();
+                $affectedDates[$date] = true;
+            }
+
             $count++;
+        }
+
+        // Recalculate attendance for affected dates
+        foreach (array_keys($affectedDates) as $date) {
+            $this->attendanceService->calculateDailyAttendance($date);
         }
 
         return $count;
