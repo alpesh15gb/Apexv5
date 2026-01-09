@@ -79,5 +79,19 @@ A full-featured Employee Attendance Tracking System built with Laravel 10, desig
 *   **Reports**: Access "Monthly Register" to download attendance sheets.
 *   **Logs**: Check `local-agent/sync.log` on your windows server to monitor data sync health.
 
-## License
-Proprietary software for Apex Human Capital.
+## 🆘 Troubleshooting
+
+### "Unexpected Character" Error in .env
+If deploy fails with `unexpected character` or `` in .env:
+1. This means the file on the server is corrupted or has wrong encoding.
+2. Run this "Factory Reset" command on your server to delete the bad file and start fresh:
+
+```bash
+# WARNING: This deletes the existing config!
+rm .env
+cp .env.example .env
+nano .env # (Add your DB_PASSWORD and SYNC_API_TOKEN again)
+docker-compose down
+docker-compose up -d --build
+```
+
