@@ -37,7 +37,7 @@
             <tbody>
                 @foreach ($employees as $employee)
                     <tr class="hover:bg-grey-lighter">
-                        <td class="py-4 px-6 border-b border-grey-light">{{ $employee->first_name }} {{ $employee->last_name }}
+                        <td class="py-4 px-6 border-b border-grey-light">{{ $employee->name }}
                         </td>
                         <td class="py-4 px-6 border-b border-grey-light">{{ $employee->department->name ?? 'N/A' }}</td>
                         <td class="py-4 px-6 border-b border-grey-light">{{ $employee->shift->name ?? 'N/A' }}</td>
