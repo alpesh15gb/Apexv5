@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Company;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class BranchController extends Controller
 {
@@ -25,6 +26,7 @@ class BranchController extends Controller
         $validated = $request->validate([
             'company_id' => 'required|exists:companies,id',
             'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:branches',
             'address' => 'nullable|string',
         ]);
 
@@ -44,6 +46,7 @@ class BranchController extends Controller
         $validated = $request->validate([
             'company_id' => 'required|exists:companies,id',
             'name' => 'required|string|max:255',
+            'code' => ['required', 'string', 'max:50', Rule::unique('branches')->ignore($branch->id)],
             'address' => 'nullable|string',
         ]);
 

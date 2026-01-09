@@ -9,26 +9,35 @@
                 @csrf
                 @method('PUT')
                 <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="branch_id">
-                        Branch
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="location_id">
+                        Location
                     </label>
                     <select
                         class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="branch_id" name="branch_id" required>
-                        <option value="">Select Branch</option>
-                        @foreach($branches as $branch)
-                            <option value="{{ $branch->id }}" {{ $department->branch_id == $branch->id ? 'selected' : '' }}>
-                                {{ $branch->name }}</option>
+                        id="location_id" name="location_id" required>
+                        <option value="">Select Location</option>
+                        @foreach($locations as $location)
+                            <option value="{{ $location->id }}" {{ $department->location_id == $location->id ? 'selected' : '' }}>
+                                {{ $location->name }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="mb-6">
+                <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
                         Department Name
                     </label>
                     <input
                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                         id="name" type="text" name="name" value="{{ $department->name }}" required>
+                </div>
+                <!-- Added Code Field -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="code">
+                        Department Code
+                    </label>
+                    <input
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        id="code" type="text" name="code" value="{{ $department->code }}" required>
                 </div>
                 <div class="flex items-center justify-between">
                     <button

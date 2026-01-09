@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\Branch;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class LocationController extends Controller
 {
@@ -25,6 +26,7 @@ class LocationController extends Controller
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:locations',
             'address' => 'nullable|string',
         ]);
 
@@ -44,6 +46,7 @@ class LocationController extends Controller
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'name' => 'required|string|max:255',
+            'code' => ['required', 'string', 'max:50', Rule::unique('locations')->ignore($location->id)],
             'address' => 'nullable|string',
         ]);
 

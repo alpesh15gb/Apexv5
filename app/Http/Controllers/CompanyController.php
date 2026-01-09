@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CompanyController extends Controller
 {
@@ -22,6 +23,7 @@ class CompanyController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:companies',
             'address' => 'nullable|string',
         ]);
 
@@ -39,6 +41,7 @@ class CompanyController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'code' => ['required', 'string', 'max:50', Rule::unique('companies')->ignore($company->id)],
             'address' => 'nullable|string',
         ]);
 
