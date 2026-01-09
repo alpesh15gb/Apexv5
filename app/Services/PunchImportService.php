@@ -118,11 +118,22 @@ class PunchImportService
         // If not found, try stripping leading zeros or "HO/" prefix if applicable
         if (!$employee) {
             $normalizedId = ltrim($deviceLogId, '0');
-            $employee = Employee::where('device_emp_code', $normalizedId)
-                ->orWhere('device_emp_code', 'HO/' . str_pad($normalizedId, 3, '0', STR_PAD_LEFT))
-                ->orWhere('device_emp_code', 'MIPA' . $normalizedId)
-                ->orWhere('device_emp_code', intval($deviceLogId))
-                ->first();
+
+            // Special handling for HO codes without slash (e.g. HO012 -> HO/012)
+            if (stripos($deviceLogId, 'HO') === 0 && strpos($deviceLogId, '/') === false) {
+                $number = preg_replace('/[^0-9]/', '', $deviceLogId);
+                $employee = Employee::where('device_emp_code', 'HO/' . $number)
+                    ->orWhere('device_emp_code', 'HO/' . str_pad($number, 3, '0', STR_PAD_LEFT))
+                    ->first();
+            }
+
+            if (!$employee) {
+                $employee = Employee::where('device_emp_code', $normalizedId)
+                    ->orWhere('device_emp_code', 'HO/' . str_pad($normalizedId, 3, '0', STR_PAD_LEFT))
+                    ->orWhere('device_emp_code', 'MIPA' . $normalizedId)
+                    ->orWhere('device_emp_code', intval($deviceLogId))
+                    ->first();
+            }
         }
 
         // 2. Prevent Duplicates
