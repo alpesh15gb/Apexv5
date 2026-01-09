@@ -63,7 +63,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: apexv5-supervisor
-    command: [ "/usr/bin/supervisord", "-n" ]
+    command: [ "/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf" ]
     volumes:
       - ./:/var/www/html
       - ./docker/supervisor/conf.d:/etc/supervisor/conf.d
