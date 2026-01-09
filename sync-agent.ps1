@@ -1,0 +1,226 @@
+# ApexV5 Local Sync Agent
+# Syncs DeviceLogs from on-premise MSSQL to ApexV5 Server
+# Run this script on your on-premise Windows machine with SQL Server access
+
+#region Configuration
+$MSSQL_SERVER = "localhost"  # Change to your SQL Server address
+$MSSQL_DATABASE = "Etimetracklite1"
+$MSSQL_USERNAME = "sa"
+$MSSQL_PASSWORD = "your_password"  # UPDATE THIS
+
+$APEXV5_API_URL = "http://ho.apextime.in/api/punches/import"  # Your ApexV5 server URL
+$APEXV5_API_TOKEN = ""  # Optional: Add if you implement API authentication
+
+# Sync settings
+$DAYS_TO_SYNC = 7  # Sync last 7 days of data
+$BATCH_SIZE = 500  # Send data in batches of 500 records
+#endregion
+
+#region Functions
+function Write-Log {
+    param($Message)
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Write-Host "[$timestamp] $Message"
+}
+
+function Get-MonthlyTableName {
+    param([DateTime]$Date)
+    $month = $Date.Month
+    $year = $Date.Year
+    return "DeviceLogs_${month}_${year}"
+}
+
+function Get-DeviceLogs {
+    param(
+        [DateTime]$StartDate,
+        [DateTime]$EndDate
+    )
+    
+    $connectionString = "Server=$MSSQL_SERVER;Database=$MSSQL_DATABASE;User Id=$MSSQL_USERNAME;Password=$MSSQL_PASSWORD;TrustServerCertificate=True;"
+    
+    try {
+        $connection = New-Object System.Data.SqlClient.SqlConnection($connectionString)
+        $connection.Open()
+        
+        Write-Log "Connected to MSSQL: $MSSQL_SERVER"
+        
+        $allLogs = @()
+        
+        # Query each monthly table in the date range
+        $currentDate = $StartDate
+        while ($currentDate -le $EndDate) {
+            $tableName = Get-MonthlyTableName -Date $currentDate
+            
+            # Check if table exists
+            $checkQuery = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '$tableName'"
+            $checkCmd = New-Object System.Data.SqlClient.SqlCommand($checkQuery, $connection)
+            $tableExists = $checkCmd.ExecuteScalar()
+            
+            if ($tableExists -gt 0) {
+                Write-Log "Querying table: $tableName"
+                
+                $query = @"
+SELECT 
+    DeviceLogId,
+    UserId,
+    DeviceId,
+    LogDate,
+    Direction,
+    AttDirection,
+    C1,
+    WorkCode
+FROM $tableName
+WHERE LogDate >= @StartDate 
+  AND LogDate <= @EndDate
+ORDER BY LogDate ASC
+"@
+                
+                $cmd = New-Object System.Data.SqlClient.SqlCommand($query, $connection)
+                $cmd.Parameters.AddWithValue("@StartDate", $StartDate) | Out-Null
+                $cmd.Parameters.AddWithValue("@EndDate", $EndDate) | Out-Null
+                
+                $reader = $cmd.ExecuteReader()
+                
+                while ($reader.Read()) {
+                    $allLogs += @{
+                        DeviceLogId = $reader["DeviceLogId"]
+                        UserId = $reader["UserId"]
+                        DeviceId = $reader["DeviceId"]
+                        LogDate = $reader["LogDate"]
+                        Direction = $reader["Direction"]
+                        AttDirection = $reader["AttDirection"]
+                        C1 = $reader["C1"]
+                        WorkCode = $reader["WorkCode"]
+                    }
+                }
+                
+                $reader.Close()
+                Write-Log "  Found $($allLogs.Count) records in $tableName"
+            }
+            
+            # Move to next month
+            $currentDate = $currentDate.AddMonths(1)
+            $currentDate = New-Object DateTime($currentDate.Year, $currentDate.Month, 1)
+        }
+        
+        $connection.Close()
+        Write-Log "Total records retrieved: $($allLogs.Count)"
+        
+        return $allLogs
+    }
+    catch {
+        Write-Log "ERROR querying MSSQL: $_"
+        return @()
+    }
+}
+
+function Convert-ToPunchData {
+    param($DeviceLogs)
+    
+    $punches = @()
+    
+    foreach ($log in $DeviceLogs) {
+        # Determine punch direction (in/out)
+        $direction = "in"
+        if ($log.C1 -eq "out" -or $log.AttDirection -eq "out" -or $log.Direction -eq "out") {
+            $direction = "out"
+        }
+        
+        $punches += @{
+            device_emp_code = [string]$log.UserId
+            punch_time = $log.LogDate.ToString("yyyy-MM-dd HH:mm:ss")
+            type = $direction
+            device_id = [string]$log.DeviceId
+        }
+    }
+    
+    return $punches
+}
+
+function Send-ToApexV5 {
+    param($Punches)
+    
+    if ($Punches.Count -eq 0) {
+        Write-Log "No punches to send"
+        return $true
+    }
+    
+    Write-Log "Sending $($Punches.Count) punches to ApexV5..."
+    
+    # Split into batches
+    $batches = @()
+    for ($i = 0; $i -lt $Punches.Count; $i += $BATCH_SIZE) {
+        $end = [Math]::Min($i + $BATCH_SIZE - 1, $Punches.Count - 1)
+        $batches += ,@($Punches[$i..$end])
+    }
+    
+    Write-Log "Split into $($batches.Count) batches of max $BATCH_SIZE records"
+    
+    $successCount = 0
+    $failCount = 0
+    
+    for ($b = 0; $b -lt $batches.Count; $b++) {
+        $batch = $batches[$b]
+        $batchNum = $b + 1
+        
+        Write-Log "Sending batch $batchNum/$($batches.Count) ($($batch.Count) records)..."
+        
+        try {
+            $body = @{
+                punches = $batch
+            } | ConvertTo-Json -Depth 3
+            
+            $headers = @{
+                "Content-Type" = "application/json"
+            }
+            
+            if ($APEXV5_API_TOKEN) {
+                $headers["Authorization"] = "Bearer $APEXV5_API_TOKEN"
+            }
+            
+            $response = Invoke-RestMethod -Uri $APEXV5_API_URL -Method POST -Headers $headers -Body $body -TimeoutSec 30
+            
+            Write-Log "  Batch $batchNum: SUCCESS - $($response.imported) imported, $($response.failed) failed"
+            $successCount += $response.imported
+            $failCount += $response.failed
+        }
+        catch {
+            Write-Log "  Batch $batchNum: ERROR - $_"
+            $failCount += $batch.Count
+        }
+        
+        # Small delay between batches
+        Start-Sleep -Milliseconds 500
+    }
+    
+    Write-Log "SYNC COMPLETE: $successCount imported, $failCount failed"
+    return $true
+}
+#endregion
+
+#region Main Execution
+Write-Log "=== ApexV5 Local Sync Agent Started ==="
+Write-Log "Server: $APEXV5_API_URL"
+Write-Log "Days to sync: $DAYS_TO_SYNC"
+
+$endDate = Get-Date
+$startDate = $endDate.AddDays(-$DAYS_TO_SYNC)
+
+Write-Log "Date range: $($startDate.ToString('yyyy-MM-dd')) to $($endDate.ToString('yyyy-MM-dd'))"
+
+# Step 1: Get data from MSSQL
+$deviceLogs = Get-DeviceLogs -StartDate $startDate -EndDate $endDate
+
+if ($deviceLogs.Count -eq 0) {
+    Write-Log "No data to sync. Exiting."
+    exit 0
+}
+
+# Step 2: Convert to ApexV5 format
+$punches = Convert-ToPunchData -DeviceLogs $deviceLogs
+
+# Step 3: Send to API
+$result = Send-ToApexV5 -Punches $punches
+
+Write-Log "=== Sync Agent Finished ==="
+#endregion
