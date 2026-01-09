@@ -21,6 +21,11 @@ RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Copy Supervisor Configuration
+COPY docker/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/supervisor/conf.d/worker.conf /etc/supervisor/conf.d/worker.conf
+
+
 # Set working directory
 WORKDIR /var/www/html
 
