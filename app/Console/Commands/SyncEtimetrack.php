@@ -59,7 +59,7 @@ class SyncEtimetrack extends Command
             $code = $source->CompanyId; // Use ID as code since no CompanyCode exists
             $name = trim(($source->CompanyFName ?? '') . ' ' . ($source->CompanySName ?? ''));
 
-            Company::updateOrCreate(
+            Company::firstOrCreate(
                 ['code' => $code],
                 [
                     'name' => $name ?: 'Company ' . $code,
@@ -112,7 +112,7 @@ class SyncEtimetrack extends Command
 
             // 4. Upsert Department
             $deptName = trim(($source->DepartmentFName ?? '') . ' ' . ($source->DepartmentSName ?? ''));
-            Department::updateOrCreate(
+            Department::firstOrCreate(
                 ['code' => $source->DepartmentId],
                 [
                     'name' => $deptName ?: 'Department ' . $source->DepartmentId,
@@ -147,7 +147,7 @@ class SyncEtimetrack extends Command
             }
 
             // Create/Update Employee
-            Employee::updateOrCreate(
+            Employee::firstOrCreate(
                 ['device_emp_code' => $source->EmployeeCode],
                 [
                     'name' => $source->EmployeeName,
