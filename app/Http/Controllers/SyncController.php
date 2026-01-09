@@ -34,7 +34,9 @@ class SyncController extends Controller
             $count = $this->punchService->processBatch($punches);
             return response()->json([
                 'message' => 'Sync successful',
-                'processed_count' => $count
+                'processed_count' => $count,
+                'imported' => $count,
+                'failed' => 0
             ]);
         } catch (\Exception $e) {
             Log::error('Sync API Error: ' . $e->getMessage());
