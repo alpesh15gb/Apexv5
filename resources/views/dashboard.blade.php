@@ -76,10 +76,19 @@
     <script>
         // Fetch stats (Mock for now, will connect to API later)
         document.addEventListener('DOMContentLoaded', () => {
-            // fetch('/api/stats') ...
-            document.getElementById('stat-present').innerText = '12';
-            document.getElementById('stat-absent').innerText = '3';
-            document.getElementById('stat-late').innerText = '2';
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('stat-present').innerText = data.present || 0;
+                    document.getElementById('stat-absent').innerText = data.absent || 0;
+                    document.getElementById('stat-late').innerText = data.late || 0;
+                    // Update Total Staff if element exists
+                    const totalElement = document.querySelector('p.text-2xl.font-bold.text-slate-700:not([id])');
+                    if (totalElement && data.total_staff) {
+                        totalElement.innerText = data.total_staff;
+                    }
+                })
+                .catch(error => console.error('Error fetching stats:', error));
         });
     </script>
 @endsection

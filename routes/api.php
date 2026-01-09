@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('/reports/daily', [ReportController::class, 'dailyReport']);
 Route::get('/reports/monthly', [ReportController::class, 'monthlyRegister']);
+Route::get('/stats', [ReportController::class, 'dashboardStats']);
 
 use App\Http\Controllers\SyncController;
 Route::post('/punches/sync', [SyncController::class, 'store']);

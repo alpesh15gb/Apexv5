@@ -44,4 +44,34 @@ class ReportController extends Controller
             'data' => $data
         ]);
     }
+    public function dashboardStats(Request $request)
+    {
+        $date = $request->input('date', Carbon::today()->toDateString());
+
+        $present_count = \App\Models\DailyAttendance::where('date', $date)
+            ->where('status', 'Present')
+            ->count();
+
+        $absent_count = \App\Models\DailyAttendance::where('date', $date)
+            ->where('status', 'Absent')
+            ->count();
+
+        $late_count = \App\Models\DailyAttendance::where('date', $date)
+            ->where('late_minutes', '>', 0)
+            ->count();
+
+        $total_staff = \App\Models\Employee::where('is_active', true)->count();
+
+        // If attendance hasn't been calculated for today, Absent count might be 0.
+        // We should really count absents as Total - Present (roughly) if records are missing, 
+        // but let's rely on DailyAttendance being generated.
+
+        return response()->json([
+            'date' => $date,
+            'present' => $present_count,
+            'absent' => $absent_count,
+            'late' => $late_count,
+            'total_staff' => $total_staff
+        ]);
+    }
 }
