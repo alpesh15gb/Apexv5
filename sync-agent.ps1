@@ -83,14 +83,14 @@ ORDER BY LogDate ASC
                 
                 while ($reader.Read()) {
                     $allLogs += @{
-                        DeviceLogId = $reader["DeviceLogId"]
-                        UserId = $reader["UserId"]
-                        DeviceId = $reader["DeviceId"]
-                        LogDate = $reader["LogDate"]
-                        Direction = $reader["Direction"]
+                        DeviceLogId  = $reader["DeviceLogId"]
+                        UserId       = $reader["UserId"]
+                        DeviceId     = $reader["DeviceId"]
+                        LogDate      = $reader["LogDate"]
+                        Direction    = $reader["Direction"]
                         AttDirection = $reader["AttDirection"]
-                        C1 = $reader["C1"]
-                        WorkCode = $reader["WorkCode"]
+                        C1           = $reader["C1"]
+                        WorkCode     = $reader["WorkCode"]
                     }
                 }
                 
@@ -128,9 +128,9 @@ function Convert-ToPunchData {
         
         $punches += @{
             device_emp_code = [string]$log.UserId
-            punch_time = $log.LogDate.ToString("yyyy-MM-dd HH:mm:ss")
-            type = $direction
-            device_id = [string]$log.DeviceId
+            punch_time      = $log.LogDate.ToString("yyyy-MM-dd HH:mm:ss")
+            type            = $direction
+            device_id       = [string]$log.DeviceId
         }
     }
     
@@ -151,7 +151,7 @@ function Send-ToApexV5 {
     $batches = @()
     for ($i = 0; $i -lt $Punches.Count; $i += $BATCH_SIZE) {
         $end = [Math]::Min($i + $BATCH_SIZE - 1, $Punches.Count - 1)
-        $batches += ,@($Punches[$i..$end])
+        $batches += , @($Punches[$i..$end])
     }
     
     Write-Log "Split into $($batches.Count) batches of max $BATCH_SIZE records"
@@ -180,12 +180,12 @@ function Send-ToApexV5 {
             
             $response = Invoke-RestMethod -Uri $APEXV5_API_URL -Method POST -Headers $headers -Body $body -TimeoutSec 30
             
-            Write-Log "  Batch $batchNum: SUCCESS - $($response.imported) imported, $($response.failed) failed"
+            Write-Log "  Batch ${batchNum}: SUCCESS - $($response.imported) imported, $($response.failed) failed"
             $successCount += $response.imported
             $failCount += $response.failed
         }
         catch {
-            Write-Log "  Batch $batchNum: ERROR - $_"
+            Write-Log "  Batch ${batchNum}: ERROR - $_"
             $failCount += $batch.Count
         }
         
