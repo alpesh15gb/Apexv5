@@ -13,7 +13,21 @@ class EmployeeController extends Controller
     public function index()
     {
         $employees = Employee::with(['department', 'shift'])->get();
-        return view('employees.index', compact('employees'));
+        $shifts = Shift::all();
+        return view('employees.index', compact('employees', 'shifts'));
+    }
+
+    public function bulkAssignShift(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_ids' => 'required|array',
+            'employee_ids.*' => 'exists:employees,id',
+            'shift_id' => 'required|exists:shifts,id',
+        ]);
+
+        Employee::whereIn('id', $validated['employee_ids'])->update(['shift_id' => $validated['shift_id']]);
+
+        return redirect()->route('employees.index')->with('success', 'Shifts assigned successfully.');
     }
 
     public function create()
