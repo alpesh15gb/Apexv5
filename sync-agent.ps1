@@ -17,6 +17,8 @@ $BATCH_SIZE = 100  # Reduced batch size to prevent timeouts
 
 # Force TLS 1.2 (Required for modern servers)
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# Disable Expect: 100-continue (Fixes "Connection closed" errors)
+[System.Net.ServicePointManager]::Expect100Continue = $false
 #endregion
 
 #region Functions
