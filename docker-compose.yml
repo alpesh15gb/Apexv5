@@ -21,7 +21,7 @@ services:
       DB_DATABASE: ${DB_DATABASE:-apex_data}
       DB_USERNAME: ${DB_USERNAME:-apex_user}
       DB_PASSWORD: ${DB_PASSWORD:-password}
-      OPENSSL_CONF: /dev/null
+      OPENSSL_CONF: /etc/ssl/openssl-legacy.cnf
     volumes:
       - ./:/var/www/html
     networks:

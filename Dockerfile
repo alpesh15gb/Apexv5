@@ -42,6 +42,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY docker/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/supervisor/conf.d/worker.conf /etc/supervisor/conf.d/worker.conf
 
+# Copy custom OpenSSL config for legacy TLS support
+COPY docker/openssl-legacy.cnf /etc/ssl/openssl-legacy.cnf
+
 
 # Set working directory
 WORKDIR /var/www/html
