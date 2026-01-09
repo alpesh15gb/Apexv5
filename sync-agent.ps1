@@ -13,7 +13,10 @@ $APEXV5_API_TOKEN = ""  # Optional: Add if you implement API authentication
 
 # Sync settings
 $DAYS_TO_SYNC = 7  # Sync last 7 days of data
-$BATCH_SIZE = 500  # Send data in batches of 500 records
+$BATCH_SIZE = 100  # Reduced batch size to prevent timeouts
+
+# Force TLS 1.2 (Required for modern servers)
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 #endregion
 
 #region Functions
