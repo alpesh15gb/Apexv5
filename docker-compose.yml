@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: apexv5-app
+    container_name: apexv5-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      APP_NAME: ${APP_NAME:-ApexV5}
+      APP_ENV: ${APP_ENV:-local}
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-apex_data}
+      DB_USERNAME: ${DB_USERNAME:-apex_user}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - apex-network
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:alpine
+    container_name: apexv5-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - apex-network
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: apexv5-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-apex_data}
+      MYSQL_USER: ${DB_USERNAME:-apex_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - apex-network
+    ports:
+      - "3306:3306"
+
+  supervisor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: apexv5-supervisor
+    command: ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+    volumes:
+      - ./:/var/www/html
+      - ./docker/supervisor/conf.d:/etc/supervisor/conf.d
+    networks:
+      - apex-network
+    depends_on:
+      - app
+      - db
+
+networks:
+  apex-network:
+    driver: bridge
+
+volumes:
+  db-data:
