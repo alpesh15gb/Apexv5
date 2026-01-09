@@ -21,6 +21,7 @@ services:
       DB_DATABASE: ${DB_DATABASE:-apex_data}
       DB_USERNAME: ${DB_USERNAME:-apex_user}
       DB_PASSWORD: ${DB_PASSWORD:-password}
+      OPENSSL_CONF: /dev/null
     volumes:
       - ./:/var/www/html
     networks:
