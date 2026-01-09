@@ -18,5 +18,13 @@ Route::get('/', function () {
     return redirect('/dashboard');
 });
 
-Route::get('/dashboard', [WebController::class, 'dashboard']);
-Route::get('/reports/monthly-view', [WebController::class, 'monthlyReportView']);
+Route::get('/dashboard', [WebController::class, 'dashboard'])->name('dashboard');
+Route::get('/reports/monthly-view', [WebController::class, 'monthlyReportView'])->name('reports.monthly');
+
+// Administration Routes
+Route::resource('companies', \App\Http\Controllers\CompanyController::class);
+Route::resource('branches', \App\Http\Controllers\BranchController::class);
+Route::resource('locations', \App\Http\Controllers\LocationController::class);
+Route::resource('departments', \App\Http\Controllers\DepartmentController::class);
+Route::resource('shifts', \App\Http\Controllers\ShiftController::class);
+Route::resource('employees', \App\Http\Controllers\EmployeeController::class);
