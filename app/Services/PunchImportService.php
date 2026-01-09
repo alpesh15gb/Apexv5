@@ -70,25 +70,27 @@ class PunchImportService
 
     protected function processPunch($rawPunch)
     {
-        // 1. Map Device Code to Employee
-        // DeviceUserId is usually the ID on the device
-        $deviceUserId = $rawPunch->UserId;
+        // Handle both API (snake_case) and DB Raw (PascalCase) formats
+        $deviceLogId = $rawPunch->device_emp_code ?? $rawPunch->UserId;
+        $punchTime = $rawPunch->punch_time ?? $rawPunch->LogDate;
+        $deviceId = $rawPunch->device_id ?? $rawPunch->DeviceId;
+        $direction = $rawPunch->type ?? 'NA'; // Default if missing
 
-        // Find employee by device_emp_code
-        $employee = Employee::where('device_emp_code', $deviceUserId)->first();
+        // 1. Find employee
+        $employee = Employee::where('device_emp_code', $deviceLogId)->first();
 
         // 2. Prevent Duplicates
-        // Use composite key check or existence check
-        $exists = PunchLog::where('device_emp_code', $deviceUserId)
-            ->where('punch_time', $rawPunch->LogDate)
+        $exists = PunchLog::where('device_emp_code', $deviceLogId)
+            ->where('punch_time', $punchTime)
             ->exists();
 
         if (!$exists) {
             PunchLog::create([
-                'punch_time' => $rawPunch->LogDate,
-                'device_id' => $rawPunch->DeviceId,
-                'device_emp_code' => $deviceUserId,
+                'punch_time' => $punchTime,
+                'device_id' => $deviceId,
+                'device_emp_code' => $deviceLogId,
                 'employee_id' => $employee ? $employee->id : null,
+                'type' => $direction,
                 'is_processed' => false,
             ]);
         }
