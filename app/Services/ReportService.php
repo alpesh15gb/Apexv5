@@ -64,7 +64,12 @@ class ReportService
 
             $period = \Carbon\CarbonPeriod::create($startDate, $endDate);
             foreach ($period as $date) {
-                $record = $empAttendance->where('date', $date->toDateString())->first();
+                // Fix: Compare formatted date strings explicitly. 
+                // $empAttendance items have 'date' as Carbon object due to casting.
+                $record = $empAttendance->first(function ($item) use ($date) {
+                    return $item->date->format('Y-m-d') === $date->format('Y-m-d');
+                });
+
                 $status = $record ? $record->status : 'Absent'; // Default to Absent if no record
 
                 // Abbreviations for the register view
