@@ -28,3 +28,4 @@ Route::resource('locations', \App\Http\Controllers\LocationController::class);
 Route::resource('departments', \App\Http\Controllers\DepartmentController::class);
 Route::resource('shifts', \App\Http\Controllers\ShiftController::class);
 Route::resource('employees', \App\Http\Controllers\EmployeeController::class);
+Route::post('employees/bulk-assign-shift', [\App\Http\Controllers\EmployeeController::class, 'bulkAssignShift'])->name('employees.bulkAssignShift');
