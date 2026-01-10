@@ -58,4 +58,6 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('leaves', \App\Http\Controllers\LeaveController::class);
     Route::patch('leaves/{leave}/status', [\App\Http\Controllers\LeaveController::class, 'updateStatus'])->name('leaves.updateStatus');
 
+    Route::resource('holidays', \App\Http\Controllers\HolidayController::class)->only(['index', 'store', 'destroy']);
+
 }); // End Auth Middleware

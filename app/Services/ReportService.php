@@ -44,15 +44,21 @@ class ReportService
 
             // Check for approved leave if status is Absent
             if ($record->status === 'Absent') {
-                $leave = $record->employee->leaves()
-                    ->where('status', 'approved')
-                    ->whereDate('start_date', '<=', $record->date)
-                    ->whereDate('end_date', '>=', $record->date)
-                    ->with('leaveType')
-                    ->first();
+                // Check for Holiday first (Priority over Leave or Absent)
+                $isHoliday = \App\Models\Holiday::where('date', $record->date->format('Y-m-d'))->exists();
+                if ($isHoliday) {
+                    $record->status = 'Holiday';
+                } else {
+                    $leave = $record->employee->leaves()
+                        ->where('status', 'approved')
+                        ->whereDate('start_date', '<=', $record->date)
+                        ->whereDate('end_date', '>=', $record->date)
+                        ->with('leaveType')
+                        ->first();
 
-                if ($leave) {
-                    $record->status = $leave->leaveType->code ?? 'Leave';
+                    if ($leave) {
+                        $record->status = $leave->leaveType->code ?? 'Leave';
+                    }
                 }
             }
 
