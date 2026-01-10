@@ -63,6 +63,56 @@ class ReportController extends Controller
         ]);
     }
 
+    public function dailyExport(Request $request)
+    {
+        $date = $request->input('date', Carbon::today()->toDateString());
+        $filters = $request->only(['department_id', 'status']);
+
+        $callback = $this->reportService->exportDailyReport($date, $filters);
+        $filename = "daily_report_{$date}.csv";
+
+        return response()->stream($callback, 200, [
+            "Content-Type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ]);
+    }
+
+    public function weeklyExport(Request $request)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $filters = $request->only(['department_id', 'employee_id']);
+
+        $callback = $this->reportService->exportDetailedReport($startDate, $endDate, $filters);
+        $filename = "detailed_report_{$startDate}_{$endDate}.csv";
+
+        return response()->stream($callback, 200, [
+            "Content-Type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ]);
+    }
+
+    public function detailedReport(Request $request)
+    {
+        $startDate = $request->input('start_date', Carbon::now()->startOfWeek()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now()->endOfWeek()->toDateString());
+        $filters = $request->only(['department_id', 'employee_id']);
+
+        $data = $this->reportService->getDetailedReport($startDate, $endDate, $filters);
+
+        return response()->json([
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'data' => $data
+        ]);
+    }
+
     public function dashboardStats(Request $request)
     {
         $date = $request->input('date', Carbon::today()->toDateString());

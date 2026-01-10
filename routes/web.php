@@ -20,7 +20,14 @@ Route::get('/', function () {
 
 Route::get('/dashboard', [WebController::class, 'dashboard'])->name('dashboard');
 Route::get('/reports/monthly-view', [WebController::class, 'monthlyReportView'])->name('reports.monthly');
+Route::get('/reports/daily-view', [WebController::class, 'dailyReportView'])->name('reports.daily');
+Route::get('/reports/weekly-view', [WebController::class, 'weeklyReportView'])->name('reports.weekly');
+
+// Data/Export Routes
+Route::get('/reports/detailed', [\App\Http\Controllers\ReportController::class, 'detailedReport']); // For JSON data
 Route::get('/reports/export/monthly', [\App\Http\Controllers\ReportController::class, 'monthlyExport'])->name('reports.monthly.export');
+Route::get('/reports/export/daily', [\App\Http\Controllers\ReportController::class, 'dailyExport'])->name('reports.daily.export');
+Route::get('/reports/export/weekly', [\App\Http\Controllers\ReportController::class, 'weeklyExport'])->name('reports.weekly.export');
 
 // Administration Routes
 Route::resource('companies', \App\Http\Controllers\CompanyController::class);

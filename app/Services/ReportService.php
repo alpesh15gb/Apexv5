@@ -33,6 +33,30 @@ class ReportService
     }
 
     /**
+     * Get Detailed Attendance Report (Weekly/Custom Range)
+     */
+    public function getDetailedReport($startDate, $endDate, $filters = [])
+    {
+        $startDate = Carbon::parse($startDate)->toDateString();
+        $endDate = Carbon::parse($endDate)->toDateString();
+
+        $query = DailyAttendance::with(['employee.department', 'employee.shift', 'shift'])
+            ->whereBetween('date', [$startDate, $endDate]);
+
+        if (!empty($filters['department_id'])) {
+            $query->whereHas('employee', function ($q) use ($filters) {
+                $q->where('department_id', $filters['department_id']);
+            });
+        }
+
+        if (!empty($filters['employee_id'])) {
+            $query->where('employee_id', $filters['employee_id']);
+        }
+
+        return $query->orderBy('date', 'asc')->get()->groupBy('employee_id');
+    }
+
+    /**
      * Get Monthly Attendance Register
      */
     public function getMonthlyRegister($month, $year, $filters = [])
@@ -141,6 +165,67 @@ class ReportService
             'Late' => 0 // Note: 'Late' might need separate query if it's a flag not just a status
         ], $stats);
     }
+    /**
+     * Export Detailed Report
+     */
+    public function exportDetailedReport($startDate, $endDate, $filters = [])
+    {
+        $data = $this->getDetailedReport($startDate, $endDate, $filters);
+
+        $callback = function () use ($data) {
+            $file = fopen('php://output', 'w');
+
+            fputcsv($file, ['Employee Code', 'Name', 'Department', 'Date', 'Day', 'Shift', 'In Time', 'Out Time', 'Late (Mins)', 'Status']);
+
+            foreach ($data as $empId => $records) {
+                foreach ($records as $record) {
+                    fputcsv($file, [
+                        $record->employee->device_emp_code ?? '-',
+                        $record->employee->name ?? '-',
+                        $record->employee->department->name ?? '-',
+                        $record->date->format('Y-m-d'),
+                        $record->date->format('l'),
+                        $record->shift->name ?? '-',
+                        $record->in_time ? $record->in_time->format('H:i') : '-',
+                        $record->out_time ? $record->out_time->format('H:i') : '-',
+                        $record->late_minutes,
+                        $record->status
+                    ]);
+                }
+            }
+            fclose($file);
+        };
+        return $callback;
+    }
+
+    /**
+     * Export Daily Report
+     */
+    public function exportDailyReport($date, $filters = [])
+    {
+        $data = $this->getDailyReport($date, $filters);
+
+        $callback = function () use ($data) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Employee Code', 'Name', 'Department', 'Shift', 'In Time', 'Out Time', 'Late (Mins)', 'Status']);
+
+            foreach ($data as $record) {
+                fputcsv($file, [
+                    $record->employee->device_emp_code ?? '-',
+                    $record->employee->name ?? '-',
+                    $record->employee->department->name ?? '-',
+                    $record->shift->name ?? '-',
+                    $record->in_time ? $record->in_time->format('H:i') : '-',
+                    $record->out_time ? $record->out_time->format('H:i') : '-',
+                    $record->late_minutes,
+                    $record->status
+                ]);
+            }
+            fclose($file);
+        };
+        return $callback;
+    }
+
     /**
      * Export Monthly Register to CSV
      */
