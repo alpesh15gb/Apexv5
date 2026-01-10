@@ -113,6 +113,21 @@ class ReportController extends Controller
         ]);
     }
 
+    public function matrixReport(Request $request)
+    {
+        $month = $request->input('month', Carbon::now()->month);
+        $year = $request->input('year', Carbon::now()->year);
+        $filters = $request->only(['department_id']);
+
+        $data = $this->reportService->getMatrixReport($month, $year, $filters);
+
+        return response()->json([
+            'month' => $month,
+            'year' => $year,
+            'data' => $data
+        ]);
+    }
+
     public function dashboardStats(Request $request)
     {
         $date = $request->input('date', Carbon::today()->toDateString());

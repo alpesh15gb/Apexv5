@@ -32,4 +32,11 @@ class WebController extends Controller
             'endDate' => \Carbon\Carbon::now()->endOfWeek()->format('Y-m-d')
         ]);
     }
+
+    public function matrixReportView()
+    {
+        return view('reports.matrix', [
+            'serverDate' => \Carbon\Carbon::today()->format('Y-m')
+        ]);
+    }
 }

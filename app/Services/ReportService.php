@@ -146,6 +146,127 @@ class ReportService
     }
 
     /**
+     * Get Monthly Matrix Report
+     */
+    public function getMatrixReport($month, $year, $filters = [])
+    {
+        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $endDate = $startDate->copy()->endOfMonth();
+
+        // Get employees with department and shift
+        $employees = Employee::with(['department', 'shift'])
+            ->where('is_active', true)
+            ->when(!empty($filters['department_id']), function ($q) use ($filters) {
+                $q->where('department_id', $filters['department_id']);
+            })
+            ->get();
+
+        // Get attendance
+        $attendances = DailyAttendance::whereBetween('date', [$startDate, $endDate])
+            ->get()
+            ->groupBy('employee_id');
+
+        // Build Matrix
+        return $employees->map(function ($employee) use ($attendances, $startDate, $endDate) {
+            $empAttendance = $attendances->get($employee->id, collect());
+            $days = [];
+
+            // Summary Counters
+            $totalDuration = 0; // minutes
+            $totalOT = 0; // minutes
+            $presentCount = 0;
+            $absentCount = 0;
+            $leavesCount = 0;
+            $lateCount = 0;
+            $earlyCount = 0; // based on early_leaving_minutes > 0
+
+            $period = \Carbon\CarbonPeriod::create($startDate, $endDate);
+            foreach ($period as $date) {
+                $record = $empAttendance->first(function ($item) use ($date) {
+                    return $item->date->format('Y-m-d') === $date->format('Y-m-d');
+                });
+
+                $metrics = [
+                    'in_time' => '-',
+                    'out_time' => '-',
+                    'duration' => '-',
+                    'late_by' => '-',
+                    'early_by' => '-',
+                    'ot' => '-',
+                    'status' => 'A'
+                ];
+
+                if ($record) {
+                    $metrics['status'] = match ($record->status) {
+                        'Present' => 'P',
+                        'Absent' => 'A',
+                        'Half Day' => 'HD',
+                        'Leave' => 'L',
+                        'Holiday' => 'H',
+                        default => substr($record->status, 0, 2)
+                    };
+
+                    if ($record->in_time)
+                        $metrics['in_time'] = $record->in_time->format('H:i');
+                    if ($record->out_time)
+                        $metrics['out_time'] = $record->out_time->format('H:i');
+
+                    // Duration (Total Hours is likely in hours or minutes? Default 0. Migration says decimal 8,2. Usually hours.)
+                    // Let's assume calculated total_hours is hours. Let's convert to H:i
+                    if ($record->total_hours > 0) {
+                        $hours = floor($record->total_hours);
+                        $mins = round(($record->total_hours - $hours) * 60);
+                        $metrics['duration'] = sprintf('%02d:%02d', $hours, $mins);
+                        $totalDuration += ($record->total_hours * 60);
+                    }
+
+                    if ($record->late_minutes > 0) {
+                        $metrics['late_by'] = $record->late_minutes;
+                        $lateCount++;
+                    }
+
+                    if ($record->early_leaving_minutes > 0) {
+                        $metrics['early_by'] = $record->early_leaving_minutes;
+                        $earlyCount++;
+                    }
+
+                    if ($record->overtime_minutes > 0) {
+                        $metrics['ot'] = $record->overtime_minutes; // minutes
+                        $totalOT += $record->overtime_minutes;
+                    }
+
+                    if ($record->status === 'Present' || $record->status === 'Half Day')
+                        $presentCount++;
+                    if ($record->status === 'Absent')
+                        $absentCount++;
+                    if ($record->status === 'Leave')
+                        $leavesCount++;
+                } else {
+                    $absentCount++; // Default absent if no record
+                }
+
+                $days[$date->day] = $metrics;
+            }
+
+            // Convert summary minutes to HH:mm
+            return [
+                'employee' => $employee,
+                'days' => $days,
+                'summary' => [
+                    'total_duration' => sprintf('%02d:%02d', floor($totalDuration / 60), $totalDuration % 60),
+                    'total_ot' => sprintf('%02d:%02d', floor($totalOT / 60), $totalOT % 60),
+                    'present' => $presentCount,
+                    'absent' => $absentCount,
+                    'leaves' => $leavesCount,
+                    'late' => $lateCount,
+                    'early' => $earlyCount,
+                    'shift_count' => $startDate->diffInDays($endDate) + 1 // Simply days in month for now
+                ]
+            ];
+        });
+    }
+
+    /**
      * Get Summary Stats for Dashboard
      */
     public function getDashboardStats($date)
