@@ -98,17 +98,18 @@
     <table class="w-full border-collapse border border-gray-300 print-tiny table-fixed" style="width: 100%">
         <thead>
             <tr class="bg-gray-100/50">
-                <th class="border border-gray-300 p-1 w-20 text-left">Code</th>
-                <th class="border border-gray-300 p-1 w-40 text-left">Employee Name</th>
-                <th class="border border-gray-300 p-1 w-24 text-left">Dept</th>
-                <th class="border border-gray-300 p-1 w-12 text-center bg-gray-50">Metric</th>
+                <th class="border border-gray-300 p-1 w-12 text-left text-[8px]">Code</th>
+                <th class="border border-gray-300 p-1 w-24 text-left text-[8px]">Employee Name</th>
+                <th class="border border-gray-300 p-1 w-10 text-left text-[8px]">Dept</th>
+                <th class="border border-gray-300 p-1 w-8 text-center bg-gray-50 text-[8px]">Metric</th>
                 @for($i = 1; $i <= $daysInMonth; $i++)
-                    <th class="border border-gray-300 p-0 text-center w-6 bg-gray-50">
-                        <div class="font-bold border-b border-gray-200">{{ $i }}</div>
-                        <div class="font-normal">{{ \Carbon\Carbon::createFromDate($year, $month, $i)->format('D') }}</div>
+                    <th class="border border-gray-300 p-0 text-center bg-gray-50">
+                        <div class="font-bold border-b border-gray-200 text-[8px]">{{ $i }}</div>
+                        <div class="font-normal text-[7px]">
+                            {{ \Carbon\Carbon::createFromDate($year, $month, $i)->format('D') }}</div>
                     </th>
                 @endfor
-                <th class="border border-gray-300 p-1 w-32 bg-gray-50">Summary</th>
+                <th class="border border-gray-300 p-1 w-20 bg-gray-50 text-[8px]">Summary</th>
             </tr>
         </thead>
         <tbody>
@@ -141,7 +142,7 @@
                         <!-- Days -->
                         @for($i = 1; $i <= $daysInMonth; $i++)
                             @php 
-                                                    $dayData = $row['days'][$i] ?? null;
+                                                                        $dayData = $row['days'][$i] ?? null;
                                 $val = $dayData[$key] ?? '-';
                                 $bgClass = '';
                                 $textClass = '';
@@ -165,26 +166,27 @@
                                     $textClass = 'text-orange-600 font-bold';
                                 }
                             @endphp
-                            <td class="border border-gray-300 p-0 text-center whitespace-nowrap {{ $bgClass }} {{ $textClass }}">
-                                {{ $val === 0 ? '-' : $val }}
-                            </td>
-                        @endfor
-                        <!-- Summary Column (Only on first row for clean look, or split?) -->
-                            @if($loop->first)
-                                <td rowspan="{{ $rowSpan }}" class="border border-gray-300 p-1 align-top bg-yellow-50/30 text-[8px]">
-                                    <div class="grid grid-cols-2 gap-x-1">
-                                        <span>Pres:</span> <b>{{ $row['summary']['present'] }}</b>
 
-                                 <span>Abs:</span> <b>{{ $row['summary']['absent'] }}</b>
-                                        <span>Late:</span> <b>{{ $row['summary']['late'] }}</b>
-                                        <span>OT:</span> <b>{{ $row['summary']['total_ot'] }}</b>
-                                        <span class="col-span-2 border-t mt-1 pt-1">
-                                            Dur: <b>{{ $row['summary']['total_duration'] }}</b>
-                                        </span>
-                                    </div>
-                                </td>
-                            @endif
-                            </tr>
+                                 <td class="border border-gray-300 p-0 text-center whitespace-nowrap {{ $bgClass }} {{ $textClass }}">
+                                            {{ $val === 0 ? '-' : $val }}
+                                        </td>
+                        @endfor
+                                <!-- Summary Column (Only on first row for clean look, or split?) -->
+                                    @if($loop->first)
+                                        <td rowspan="{{ $rowSpan }}" class="border border-gray-300 p-1 align-top bg-yellow-50/30 text-[8px]">
+                                            <div class="grid grid-cols-2 gap-x-1">
+                                                <span>Pres:</span> <b>{{ $row['summary']['present'] }}</b>
+
+                                         <span>Abs:</span> <b>{{ $row['summary']['absent'] }}</b>
+                                                <span>Late:</span> <b>{{ $row['summary']['late'] }}</b>
+                                                <span>OT:</span> <b>{{ $row['summary']['total_ot'] }}</b>
+                                                <span class="col-span-2 border-t mt-1 pt-1">
+                                                    Dur: <b>{{ $row['summary']['total_duration'] }}</b>
+                                                </span>
+                                            </div>
+                                        </td>
+                                    @endif
+                                    </tr>
                 @endforeach
             @endforeach
         </tbody>
