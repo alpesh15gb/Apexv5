@@ -14,26 +14,35 @@ use App\Http\Controllers\WebController;
 |
 */
 
-Route::get('/', function () {
-    return redirect('/dashboard');
-});
+// Auth Routes
+Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
 
-Route::get('/dashboard', [WebController::class, 'dashboard'])->name('dashboard');
-Route::get('/reports/monthly-view', [WebController::class, 'monthlyReportView'])->name('reports.monthly');
-Route::get('/reports/daily-view', [WebController::class, 'dailyReportView'])->name('reports.daily');
-Route::get('/reports/weekly-view', [WebController::class, 'weeklyReportView'])->name('reports.weekly');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/', function () {
+        return redirect('/dashboard');
+    });
 
-// Data/Export Routes
-Route::get('/reports/detailed', [\App\Http\Controllers\ReportController::class, 'detailedReport']); // For JSON data
-Route::get('/reports/export/monthly', [\App\Http\Controllers\ReportController::class, 'monthlyExport'])->name('reports.monthly.export');
-Route::get('/reports/export/daily', [\App\Http\Controllers\ReportController::class, 'dailyExport'])->name('reports.daily.export');
-Route::get('/reports/export/weekly', [\App\Http\Controllers\ReportController::class, 'weeklyExport'])->name('reports.weekly.export');
+    Route::get('/dashboard', [WebController::class, 'dashboard'])->name('dashboard');
+    Route::get('/reports/monthly-view', [WebController::class, 'monthlyReportView'])->name('reports.monthly');
 
-// Administration Routes
-Route::resource('companies', \App\Http\Controllers\CompanyController::class);
-Route::resource('branches', \App\Http\Controllers\BranchController::class);
-Route::resource('locations', \App\Http\Controllers\LocationController::class);
-Route::resource('departments', \App\Http\Controllers\DepartmentController::class);
-Route::resource('shifts', \App\Http\Controllers\ShiftController::class);
-Route::resource('employees', \App\Http\Controllers\EmployeeController::class);
-Route::post('employees/bulk-assign-shift', [\App\Http\Controllers\EmployeeController::class, 'bulkAssignShift'])->name('employees.bulkAssignShift');
+    Route::get('/reports/daily-view', [WebController::class, 'dailyReportView'])->name('reports.daily');
+    Route::get('/reports/weekly-view', [WebController::class, 'weeklyReportView'])->name('reports.weekly');
+
+    // Data/Export Routes
+    Route::get('/reports/detailed', [\App\Http\Controllers\ReportController::class, 'detailedReport']); // For JSON data
+    Route::get('/reports/export/monthly', [\App\Http\Controllers\ReportController::class, 'monthlyExport'])->name('reports.monthly.export');
+    Route::get('/reports/export/daily', [\App\Http\Controllers\ReportController::class, 'dailyExport'])->name('reports.daily.export');
+    Route::get('/reports/export/weekly', [\App\Http\Controllers\ReportController::class, 'weeklyExport'])->name('reports.weekly.export');
+
+    // Administration Routes
+    Route::resource('companies', \App\Http\Controllers\CompanyController::class);
+    Route::resource('branches', \App\Http\Controllers\BranchController::class);
+    Route::resource('locations', \App\Http\Controllers\LocationController::class);
+    Route::resource('departments', \App\Http\Controllers\DepartmentController::class);
+    Route::resource('shifts', \App\Http\Controllers\ShiftController::class);
+    Route::resource('employees', \App\Http\Controllers\EmployeeController::class);
+    Route::post('employees/bulk-assign-shift', [\App\Http\Controllers\EmployeeController::class, 'bulkAssignShift'])->name('employees.bulkAssignShift');
+
+}); // End Auth Middleware
