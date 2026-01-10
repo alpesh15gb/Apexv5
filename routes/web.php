@@ -55,4 +55,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('employees/bulk-assign-shift', [\App\Http\Controllers\EmployeeController::class, 'bulkAssignShift'])->name('employees.bulkAssignShift');
     Route::post('employees/bulk-assign-department', [\App\Http\Controllers\EmployeeController::class, 'bulkAssignDepartment'])->name('employees.bulkAssignDepartment');
 
+    Route::resource('leaves', \App\Http\Controllers\LeaveController::class);
+    Route::patch('leaves/{leave}/status', [\App\Http\Controllers\LeaveController::class, 'updateStatus'])->name('leaves.updateStatus');
+
 }); // End Auth Middleware

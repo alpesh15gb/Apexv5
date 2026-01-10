@@ -16,7 +16,7 @@ class ReportService
     {
         $date = Carbon::parse($date)->toDateString();
 
-        $query = DailyAttendance::with(['employee.department', 'employee.shift', 'shift'])
+        $query = DailyAttendance::with(['employee.department', 'employee.shift', 'shift', 'employee.leaves'])
             ->where('date', $date);
 
         if (!empty($filters['department_id'])) {
@@ -41,6 +41,21 @@ class ReportService
             if ($record->out_time instanceof \DateTime) {
                 $record->out_time = $record->out_time->format('Y-m-d H:i:s');
             }
+
+            // Check for approved leave if status is Absent
+            if ($record->status === 'Absent') {
+                $leave = $record->employee->leaves()
+                    ->where('status', 'approved')
+                    ->whereDate('start_date', '<=', $record->date)
+                    ->whereDate('end_date', '>=', $record->date)
+                    ->with('leaveType')
+                    ->first();
+
+                if ($leave) {
+                    $record->status = $leave->leaveType->code ?? 'Leave';
+                }
+            }
+
             return $record;
         });
     }
