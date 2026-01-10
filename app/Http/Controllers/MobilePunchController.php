@@ -103,7 +103,8 @@ class MobilePunchController extends Controller
 
         if ($request->type === 'check_in') {
             if (!$attendance->in_time) {
-                $attendance->in_time = $now;
+                // Save as string to prevent UTC conversion (Wall Clock Time)
+                $attendance->in_time = $now->format('Y-m-d H:i:s');
                 $attendance->in_image = $imageUrl;
                 $attendance->in_lat = $request->lat;
                 $attendance->in_long = $request->long;
@@ -113,7 +114,7 @@ class MobilePunchController extends Controller
             }
         } else {
             // Check Out
-            $attendance->out_time = $now;
+            $attendance->out_time = $now->format('Y-m-d H:i:s');
             $attendance->out_image = $imageUrl;
             $attendance->out_lat = $request->lat;
             $attendance->out_long = $request->long;
