@@ -13,6 +13,21 @@
         </div>
     @endif
 
+    <div class="mb-4">
+        <form method="GET" action="{{ route('employees.index') }}" class="flex items-center">
+            <label class="mr-2 font-bold text-gray-700">Filter by Location:</label>
+            <select name="location_id" onchange="this.form.submit()"
+                class="border rounded px-3 py-2 text-gray-700 focus:outline-none focus:shadow-outline min-w-[200px]">
+                <option value="">All Locations</option>
+                @foreach($locations as $location)
+                    <option value="{{ $location->id }}" {{ request('location_id') == $location->id ? 'selected' : '' }}>
+                        {{ $location->name }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
+    </div>
+
     <form action="{{ route('employees.bulkAssignShift') }}" method="POST">
         @csrf
         <div class="flex items-center mb-4 space-x-4 bg-gray-50 p-4 rounded-lg border">
@@ -23,7 +38,8 @@
                 @foreach($shifts as $shift)
                     <option value="{{ $shift->id }}">{{ $shift->name }}
                         ({{ \Carbon\Carbon::parse($shift->start_time)->format('H:i') }} -
-                        {{ \Carbon\Carbon::parse($shift->end_time)->format('H:i') }})</option>
+                        {{ \Carbon\Carbon::parse($shift->end_time)->format('H:i') }})
+                    </option>
                 @endforeach
             </select>
             <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
@@ -41,6 +57,9 @@
                         <th
                             class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">
                             Name</th>
+                        <th
+                            class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">
+                            Location</th>
                         <th
                             class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">
                             Department</th>
@@ -62,6 +81,11 @@
                                 <input type="checkbox" name="employee_ids[]" value="{{ $employee->id }}" class="emp-checkbox">
                             </td>
                             <td class="py-4 px-6 border-b border-grey-light">{{ $employee->name }}</td>
+                            <td class="py-4 px-6 border-b border-grey-light">
+                                <span class="bg-slate-100 text-slate-700 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">
+                                    {{ $employee->department->location->name ?? '-' }}
+                                </span>
+                            </td>
                             <td class="py-4 px-6 border-b border-grey-light">{{ $employee->department->name ?? 'N/A' }}</td>
                             <td class="py-4 px-6 border-b border-grey-light">{{ $employee->shift->name ?? 'N/A' }}</td>
                             <td class="py-4 px-6 border-b border-grey-light">{{ $employee->email }}</td>
@@ -83,6 +107,34 @@
             for (var i = 0, n = checkboxes.length; i < n; i++) {
                 checkboxes[i].checked = source.checked;
             }
+        }
+
+        function submitBulkForm(formId) {
+            const form = document.getElementById(formId);
+            const checkboxes = document.querySelectorAll('.emp-checkbox:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('Please select at least one employee.');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to proceed with this bulk update?')) {
+                return;
+            }
+
+            // Remove any existing hidden inputs
+            form.querySelectorAll('input[name="employee_ids[]"]').forEach(el => el.remove());
+
+            // Append checked IDs to the form
+            checkboxes.forEach(checkbox => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'employee_ids[]';
+                input.value = checkbox.value;
+                form.appendChild(input);
+            });
+
+            form.submit();
         }
     </script>
 @endsection

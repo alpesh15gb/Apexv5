@@ -10,11 +10,22 @@ use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $employees = Employee::with(['department', 'shift'])->get();
+        $query = Employee::with(['department.location', 'shift']);
+
+        if ($request->has('location_id') && $request->location_id != '') {
+            $query->whereHas('department.location', function ($q) use ($request) {
+                $q->where('id', $request->location_id);
+            });
+        }
+
+        $employees = $query->get();
         $shifts = Shift::all();
-        return view('employees.index', compact('employees', 'shifts'));
+        $locations = \App\Models\Location::all();
+        $departments = Department::with('location')->get();
+
+        return view('employees.index', compact('employees', 'shifts', 'locations', 'departments'));
     }
 
     public function bulkAssignShift(Request $request)
@@ -28,6 +39,19 @@ class EmployeeController extends Controller
         Employee::whereIn('id', $validated['employee_ids'])->update(['shift_id' => $validated['shift_id']]);
 
         return redirect()->route('employees.index')->with('success', 'Shifts assigned successfully.');
+    }
+
+    public function bulkAssignDepartment(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_ids' => 'required|array',
+            'employee_ids.*' => 'exists:employees,id',
+            'department_id' => 'required|exists:departments,id',
+        ]);
+
+        Employee::whereIn('id', $validated['employee_ids'])->update(['department_id' => $validated['department_id']]);
+
+        return redirect()->route('employees.index')->with('success', 'Departments (and Locations) updated successfully.');
     }
 
     public function create()
