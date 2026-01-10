@@ -3,6 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebController;
 
+if (app()->environment('production') || true) { // Force for now
+    \Illuminate\Support\Facades\URL::forceScheme('https');
+}
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes

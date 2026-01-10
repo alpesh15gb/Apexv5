@@ -15,10 +15,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Check if admin exists
-        if (!User::where('email', 'admin@apex.com')->exists()) {
+        if (!User::where('email', 'admin@apextime.in')->exists()) {
             User::factory()->create([
                 'name' => 'Admin User',
-                'email' => 'admin@apex.com',
+                'email' => 'admin@apextime.in', // Official domain
                 'password' => Hash::make('password'),
             ]);
         }
