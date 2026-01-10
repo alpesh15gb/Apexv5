@@ -32,6 +32,29 @@ Route::get('/setup-admin', function () {
     return redirect('/dashboard');
 });
 
+Route::get('/debug-auth', function () {
+    $user = \App\Models\User::where('email', 'admin@apextime.in')->first();
+    if (!$user)
+        return 'User not found';
+
+    // Reset password just in case
+    $user->password = \Illuminate\Support\Facades\Hash::make('password');
+    $user->save();
+
+    $check = \Illuminate\Support\Facades\Hash::check('password', $user->password);
+    $login = \Illuminate\Support\Facades\Auth::attempt(['email' => 'admin@apextime.in', 'password' => 'password']);
+
+    return response()->json([
+        'user_id' => $user->id,
+        'email' => $user->email,
+        'password_hash_check' => $check,
+        'auth_attempt_result' => $login,
+        'session_id' => session()->getId(),
+        'session_driver' => config('session.driver'),
+        'session_domain' => config('session.domain'),
+    ]);
+});
+
 // Auth Routes
 Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
