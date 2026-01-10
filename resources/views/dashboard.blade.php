@@ -9,43 +9,49 @@
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Present -->
-        <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg shadow-green-200 transform transition hover:-translate-y-1 duration-300">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-green-100 font-medium text-sm">Present</p>
-                    <h4 class="text-4xl font-bold mt-2" id="stat-present">-</h4>
-                </div>
-                <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <a href="{{ route('reports.daily', ['status' => 'Present']) }}" class="block group">
+            <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg shadow-green-200 transform transition group-hover:-translate-y-1 duration-300">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-green-100 font-medium text-sm">Present</p>
+                        <h4 class="text-4xl font-bold mt-2" id="stat-present">-</h4>
+                    </div>
+                    <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
 
         <!-- Absent -->
-        <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-6 text-white shadow-lg shadow-red-200 transform transition hover:-translate-y-1 duration-300">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-red-100 font-medium text-sm">Absent</p>
-                    <h4 class="text-4xl font-bold mt-2" id="stat-absent">-</h4>
-                </div>
-                <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        <a href="{{ route('reports.daily', ['status' => 'Absent']) }}" class="block group">
+            <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-6 text-white shadow-lg shadow-red-200 transform transition group-hover:-translate-y-1 duration-300">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-red-100 font-medium text-sm">Absent</p>
+                        <h4 class="text-4xl font-bold mt-2" id="stat-absent">-</h4>
+                    </div>
+                    <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
 
         <!-- Late -->
-        <div class="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg shadow-orange-200 transform transition hover:-translate-y-1 duration-300">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-amber-100 font-medium text-sm">Late Arrivals</p>
-                    <h4 class="text-4xl font-bold mt-2" id="stat-late">-</h4>
-                </div>
-                <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <a href="{{ route('reports.daily', ['status' => 'Late']) }}" class="block group">
+            <div class="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg shadow-orange-200 transform transition group-hover:-translate-y-1 duration-300">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-amber-100 font-medium text-sm">Late Arrivals</p>
+                        <h4 class="text-4xl font-bold mt-2" id="stat-late">-</h4>
+                    </div>
+                    <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
 
         <!-- Total Staff -->
         <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col justify-center items-center">

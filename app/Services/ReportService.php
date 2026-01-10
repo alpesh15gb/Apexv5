@@ -26,7 +26,11 @@ class ReportService
         }
 
         if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
+            if ($filters['status'] === 'Late') {
+                $query->where('late_minutes', '>', 0);
+            } else {
+                $query->where('status', $filters['status']);
+            }
         }
 
         return $query->get()->map(function ($record) {
