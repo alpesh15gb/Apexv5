@@ -19,59 +19,6 @@ if (app()->environment('production') || true) { // Force for now
 */
 
 // Temporary Setup Route
-// Temporary Setup Route
-Route::get('/setup-admin', function () {
-    $user = \App\Models\User::updateOrCreate(
-        ['email' => 'admin@apextime.in'],
-        [
-            'name' => 'Admin User',
-            'password' => \Illuminate\Support\Facades\Hash::make('password'),
-        ]
-    );
-    \Illuminate\Support\Facades\Auth::login($user);
-    return redirect('/dashboard');
-});
-
-Route::get('/debug-auth', function () {
-    try {
-        $allUsers = \App\Models\User::all();
-        $targetUser = \App\Models\User::where('email', 'admin@apextime.in')->first();
-
-        if (!$targetUser) {
-            // Attempt create
-            try {
-                $targetUser = \App\Models\User::create([
-                    'name' => 'Admin User',
-                    'email' => 'admin@apextime.in',
-                    'password' => \Illuminate\Support\Facades\Hash::make('password'),
-                ]);
-            } catch (\Exception $e) {
-                return 'Error creating user: ' . $e->getMessage();
-            }
-        }
-
-        // Reset password just in case
-        $targetUser->password = \Illuminate\Support\Facades\Hash::make('password');
-        $targetUser->save();
-
-        $check = \Illuminate\Support\Facades\Hash::check('password', $targetUser->password);
-        $login = \Illuminate\Support\Facades\Auth::attempt(['email' => 'admin@apextime.in', 'password' => 'password']);
-
-        return response()->json([
-            'db_name' => config('database.connections.mysql.database'),
-            'db_host' => config('database.connections.mysql.host'),
-            'user_count' => $allUsers->count(),
-            'all_users_emails' => $allUsers->pluck('email'),
-            'target_user_id' => $targetUser->id,
-            'password_hash_check' => $check,
-            'auth_attempt_result' => $login,
-            'session_id' => session()->getId(),
-        ]);
-    } catch (\Exception $e) {
-        return "Critical Error: " . $e->getMessage() . "\n" . $e->getTraceAsString();
-    }
-});
-
 // Auth Routes
 Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
