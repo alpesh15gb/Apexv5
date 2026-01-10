@@ -11,6 +11,7 @@
                 <input type="month" x-model="selectedMonth" @change="fetchData()"
                     class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm">
                 <button
+                    @click="exportData()"
                     class="bg-apex-600 text-white px-4 py-2 rounded-md hover:bg-apex-700 focus:outline-none flex items-center">
                     <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -108,6 +109,10 @@
                         .finally(() => {
                             this.loading = false;
                         });
+                },
+                exportData() {
+                    const [year, month] = this.selectedMonth.split('-');
+                    window.location.href = `/reports/export/monthly?month=${month}&year=${year}`;
                 }
             }
         }

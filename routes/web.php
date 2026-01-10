@@ -20,6 +20,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', [WebController::class, 'dashboard'])->name('dashboard');
 Route::get('/reports/monthly-view', [WebController::class, 'monthlyReportView'])->name('reports.monthly');
+Route::get('/reports/export/monthly', [\App\Http\Controllers\ReportController::class, 'monthlyExport'])->name('reports.monthly.export');
 
 // Administration Routes
 Route::resource('companies', \App\Http\Controllers\CompanyController::class);

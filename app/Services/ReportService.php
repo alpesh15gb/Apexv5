@@ -141,4 +141,57 @@ class ReportService
             'Late' => 0 // Note: 'Late' might need separate query if it's a flag not just a status
         ], $stats);
     }
+    /**
+     * Export Monthly Register to CSV
+     */
+    public function exportMonthlyRegister($month, $year)
+    {
+        // Reuse getMonthlyRegister to get the data
+        $data = $this->getMonthlyRegister($month, $year);
+        $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+
+        $callback = function () use ($data, $daysInMonth) {
+            $file = fopen('php://output', 'w');
+
+            // Header Row
+            $header = ['S.No', 'Employee Name', 'Department', 'Employee Code'];
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $header[] = $d;
+            }
+            $header = array_merge($header, ['Total P', 'Total A', 'Total Late']);
+            fputcsv($file, $header);
+
+            // Data Rows
+            foreach ($data as $index => $row) {
+                $csvRow = [
+                    $index + 1,
+                    $row['employee_name'],
+                    $row['department'],
+                    $row['employee_code']
+                ];
+
+                for ($d = 1; $d <= $daysInMonth; $d++) {
+                    $dayData = $row['days'][$d] ?? null;
+
+                    // Handle array structure from timing update
+                    if (is_array($dayData)) {
+                        $cellContent = $dayData['label'] ?? '-';
+                    } else {
+                        $cellContent = $dayData ?? '-';
+                    }
+                    $csvRow[] = $cellContent;
+                }
+
+                $csvRow[] = $row['summary']['P'];
+                $csvRow[] = $row['summary']['A'];
+                $csvRow[] = $row['summary']['Late'];
+
+                fputcsv($file, $csvRow);
+            }
+
+            fclose($file);
+        };
+
+        return $callback;
+    }
 }

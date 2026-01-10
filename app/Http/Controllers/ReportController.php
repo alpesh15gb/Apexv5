@@ -44,6 +44,25 @@ class ReportController extends Controller
             'data' => $data
         ]);
     }
+
+    public function monthlyExport(Request $request)
+    {
+        $month = $request->input('month', Carbon::now()->month);
+        $year = $request->input('year', Carbon::now()->year);
+
+        $callback = $this->reportService->exportMonthlyRegister($month, $year);
+
+        $filename = "monthly_register_{$year}_{$month}.csv";
+
+        return response()->stream($callback, 200, [
+            "Content-Type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ]);
+    }
+
     public function dashboardStats(Request $request)
     {
         $date = $request->input('date', Carbon::today()->toDateString());
