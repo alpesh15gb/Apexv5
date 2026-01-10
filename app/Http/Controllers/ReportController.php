@@ -160,12 +160,27 @@ class ReportController extends Controller
         // We should really count absents as Total - Present (roughly) if records are missing, 
         // but let's rely on DailyAttendance being generated.
 
+        // Recent Activity (Last 5 punches)
+        $recent_punches = \App\Models\PunchLog::with('employee')
+            ->orderBy('punch_time', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($punch) {
+                return [
+                    'emp_name' => $punch->employee->name ?? 'Unknown',
+                    'emp_code' => $punch->employee->device_emp_code ?? '-',
+                    'time' => \Carbon\Carbon::parse($punch->punch_time)->format('H:i:s'), // ReportService fix logic implies we might need format here too if using raw DB
+                    'direction' => $punch->type // IN/OUT/NA
+                ];
+            });
+
         return response()->json([
             'date' => $date,
             'present' => $present_count,
             'absent' => $absent_count,
             'late' => $late_count,
-            'total_staff' => $total_staff
+            'total_staff' => $total_staff,
+            'recent_punches' => $recent_punches
         ]);
     }
 }
