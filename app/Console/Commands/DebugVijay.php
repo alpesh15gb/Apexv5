@@ -43,13 +43,22 @@ class DebugVijay extends Command
         $this->info("  ID: " . $emp->id);
         $this->info("  Device Emp Code: '" . $emp->device_emp_code . "'");
 
-        $expectedCodes = [
-            'HO015',
-            'HO/015',
-            'HO/15'
-        ];
+        // Dynamically generate codes to check based on his DB code
+        // e.g. HO/012 -> 12 -> HO012, HO12, HO/12, HO/012
+        $number = preg_replace('/[^0-9]/', '', $emp->device_emp_code);
+        $padded = str_pad($number, 3, '0', STR_PAD_LEFT);
 
-        $this->info("\n--- Checking Punches ---");
+        $expectedCodes = array_unique([
+            $emp->device_emp_code,       // HO/012
+            'HO' . $padded,              // HO012
+            'HO' . $number,              // HO12
+            'HO/' . $padded,             // HO/012
+            'HO/' . $number,             // HO/12
+            $number,                     // 12
+            intval($number)              // 12 (int)
+        ]);
+
+        $this->info("\n--- Checking Punches for derived codes: " . implode(', ', $expectedCodes) . " ---");
 
         foreach ($expectedCodes as $code) {
             $count = PunchLog::where('device_emp_code', $code)->count();
@@ -59,10 +68,14 @@ class DebugVijay extends Command
             $this->info("Code '{$code}': Found {$count} punches ({$linked} linked, {$unlinked} unlinked)");
 
             if ($linked > 0) {
-                $example = PunchLog::where('device_emp_code', $code)->whereNotNull('employee_id')->first();
-                $linkedEmp = Employee::find($example->employee_id);
-                $linkedName = $linkedEmp ? $linkedEmp->name . " (ID: {$linkedEmp->id})" : "UNKNOWN_ID: {$example->employee_id}";
-                $this->info("    -> Linked to: " . $linkedName);
+                // Check WHO it is linked to
+                $examples = PunchLog::where('device_emp_code', $code)->whereNotNull('employee_id')->take(3)->get();
+                foreach ($examples as $example) {
+                    $linkedEmp = Employee::find($example->employee_id);
+                    $linkedName = $linkedEmp ? $linkedEmp->name . " (ID: {$linkedEmp->id})" : "UNKNOWN_ID: {$example->employee_id}";
+                    $matchStatus = ($linkedEmp && $linkedEmp->id === $emp->id) ? "[CORRECT]" : "[WRONG LINK]";
+                    $this->info("    -> Linked to: " . $linkedName . " " . $matchStatus);
+                }
             }
         }
 
