@@ -65,30 +65,74 @@
         </div>
     </div>
 
-    <!-- Chart Placeholder -->
+    <!-- Chart Area -->
     <div class="bg-white rounded-lg shadow-sm border border-slate-100 p-6">
-        <h4 class="text-lg font-semibold text-slate-700 mb-4">Attendance Trend</h4>
-        <div class="h-64 flex items-center justify-center bg-slate-50 rounded text-slate-400">
-            Chart Integration Pending (Requires Chart.js or ApexCharts)
-        </div>
+        <h4 class="text-lg font-semibold text-slate-700 mb-4">Today's Attendance Overview</h4>
+        <!-- Chart Container -->
+        <div id="attendanceChart" class="w-full h-80 flex items-center justify-center"></div>
     </div>
 
     <script>
-        // Fetch stats (Mock for now, will connect to API later)
         document.addEventListener('DOMContentLoaded', () => {
             fetch('/api/stats')
                 .then(response => response.json())
                 .then(data => {
+                    // Update Stats Cards
                     document.getElementById('stat-present').innerText = data.present || 0;
                     document.getElementById('stat-absent').innerText = data.absent || 0;
                     document.getElementById('stat-late').innerText = data.late || 0;
-                    // Update Total Staff if element exists
+
                     const totalElement = document.querySelector('p.text-2xl.font-bold.text-slate-700:not([id])');
                     if (totalElement && data.total_staff) {
                         totalElement.innerText = data.total_staff;
                     }
+
+                    // Render Chart
+                    renderChart(data);
                 })
                 .catch(error => console.error('Error fetching stats:', error));
         });
+
+        function renderChart(data) {
+            const options = {
+                series: [data.present || 0, data.absent || 0, data.late || 0],
+                chart: {
+                    type: 'donut',
+                    height: 320,
+                    fontFamily: 'Inter, sans-serif'
+                },
+                labels: ['Present', 'Absent', 'Late'],
+                colors: ['#22c55e', '#ef4444', '#eab308'], // Green, Red, Yellow
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '70%',
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Total',
+                                    formatter: function (w) {
+                                        return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                legend: {
+                    position: 'bottom'
+                },
+                stroke: {
+                    show: false
+                }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#attendanceChart"), options);
+            chart.render();
+        }
     </script>
 @endsection
