@@ -66,7 +66,12 @@ Route::middleware(['auth'])->group(function () {
 Route::get('mobile/login', [\App\Http\Controllers\MobilePunchController::class, 'showLogin'])->name('mobile.login');
 Route::post('mobile/login', [\App\Http\Controllers\MobilePunchController::class, 'login'])->name('mobile.login.post');
 Route::get('mobile/punch', [\App\Http\Controllers\MobilePunchController::class, 'showPunch'])->name('mobile.punch');
-Route::post('mobile/punch', [\App\Http\Controllers\MobilePunchController::class, 'storePunch'])->name('mobile.punch.store');
+Route::get('/cleanup-mobile', function () {
+    $count = \App\Models\DailyAttendance::where('date', \Carbon\Carbon::now()->format('Y-m-d'))
+        ->whereNotNull('in_image')
+        ->delete();
+    return "Deleted $count mobile punches for today.";
+});
 Route::get('mobile/logout', [\App\Http\Controllers\MobilePunchController::class, 'logout'])->name('mobile.logout');
 
 Route::get('/debug-punches', function () {
