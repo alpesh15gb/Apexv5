@@ -15,6 +15,7 @@ use App\Http\Controllers\WebController;
 */
 
 // Temporary Setup Route
+// Temporary Setup Route
 Route::get('/setup-admin', function () {
     $user = \App\Models\User::updateOrCreate(
         ['email' => 'admin@apextime.in'],
@@ -23,7 +24,8 @@ Route::get('/setup-admin', function () {
             'password' => \Illuminate\Support\Facades\Hash::make('password'),
         ]
     );
-    return "User setup complete. <br>Email: admin@apextime.in<br>Password: password<br><a href='/login'>Go to Login</a>";
+    \Illuminate\Support\Facades\Auth::login($user);
+    return redirect('/dashboard');
 });
 
 // Auth Routes
