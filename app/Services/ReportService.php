@@ -29,7 +29,16 @@ class ReportService
             $query->where('status', $filters['status']);
         }
 
-        return $query->get();
+        return $query->get()->map(function ($record) {
+            // Force datetime to string to avoid auto-conversion to UTC JSON (e.g. ...Z)
+            if ($record->in_time instanceof \DateTime) {
+                $record->in_time = $record->in_time->format('Y-m-d H:i:s');
+            }
+            if ($record->out_time instanceof \DateTime) {
+                $record->out_time = $record->out_time->format('Y-m-d H:i:s');
+            }
+            return $record;
+        });
     }
 
     /**
@@ -53,7 +62,17 @@ class ReportService
             $query->where('employee_id', $filters['employee_id']);
         }
 
-        return $query->orderBy('date', 'asc')->get()->groupBy('employee_id');
+        $data = $query->orderBy('date', 'asc')->get()->map(function ($record) {
+            if ($record->in_time instanceof \DateTime) {
+                $record->in_time = $record->in_time->format('Y-m-d H:i:s');
+            }
+            if ($record->out_time instanceof \DateTime) {
+                $record->out_time = $record->out_time->format('Y-m-d H:i:s');
+            }
+            return $record;
+        });
+
+        return $data->groupBy('employee_id');
     }
 
     /**
