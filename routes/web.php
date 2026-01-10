@@ -68,3 +68,4 @@ Route::post('mobile/login', [\App\Http\Controllers\MobilePunchController::class,
 Route::get('mobile/punch', [\App\Http\Controllers\MobilePunchController::class, 'showPunch'])->name('mobile.punch');
 Route::post('mobile/punch', [\App\Http\Controllers\MobilePunchController::class, 'storePunch'])->name('mobile.punch.store');
 Route::get('mobile/logout', [\App\Http\Controllers\MobilePunchController::class, 'logout'])->name('mobile.logout');
+

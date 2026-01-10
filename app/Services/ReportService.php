@@ -662,7 +662,7 @@ class ReportService
             ->get()
             ->map(function ($record) {
                 // Determine if this was an IN or OUT punch based on which time is closer to now
-                $time = $record->updated_at->format('H:i');
+                $time = $record->updated_at->setTimezone('Asia/Kolkata')->format('H:i');
                 $direction = 'LOG';
                 $image = null;
 
