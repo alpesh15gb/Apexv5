@@ -35,11 +35,12 @@ class ReportService
 
         return $query->get()->map(function ($record) {
             // Force datetime to string to avoid auto-conversion to UTC JSON (e.g. ...Z)
+            // Force datetime to string (IST) to avoid auto-conversion to UTC JSON
             if ($record->in_time instanceof \DateTime) {
-                $record->in_time = $record->in_time->format('Y-m-d H:i:s');
+                $record->in_time = $record->in_time->setTimezone('Asia/Kolkata')->format('Y-m-d H:i:s');
             }
             if ($record->out_time instanceof \DateTime) {
-                $record->out_time = $record->out_time->format('Y-m-d H:i:s');
+                $record->out_time = $record->out_time->setTimezone('Asia/Kolkata')->format('Y-m-d H:i:s');
             }
 
             // Check for approved leave if status is Absent
@@ -188,8 +189,8 @@ class ReportService
                 $label = $shortStatus;
                 if ($status === 'Present' || $status === 'Half Day') {
                     if ($record && $record->in_time) {
-                        $in = $record->in_time->format('H:i');
-                        $out = $record->out_time ? $record->out_time->format('H:i') : 'Missing';
+                        $in = $record->in_time->setTimezone('Asia/Kolkata')->format('H:i');
+                        $out = $record->out_time ? $record->out_time->setTimezone('Asia/Kolkata')->format('H:i') : 'Missing';
                         $label = "$in - $out";
                     }
                 }
@@ -326,9 +327,9 @@ class ReportService
                     }
 
                     if ($record->in_time)
-                        $metrics['in_time'] = $record->in_time->format('H:i');
+                        $metrics['in_time'] = $record->in_time->setTimezone('Asia/Kolkata')->format('H:i');
                     if ($record->out_time)
-                        $metrics['out_time'] = $record->out_time->format('H:i');
+                        $metrics['out_time'] = $record->out_time->setTimezone('Asia/Kolkata')->format('H:i');
 
                     // Duration (Total Hours is likely in hours or minutes? Default 0. Migration says decimal 8,2. Usually hours.)
                     // Let's assume calculated total_hours is hours. Let's convert to H:i
