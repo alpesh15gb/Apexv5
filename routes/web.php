@@ -33,26 +33,43 @@ Route::get('/setup-admin', function () {
 });
 
 Route::get('/debug-auth', function () {
-    $user = \App\Models\User::where('email', 'admin@apextime.in')->first();
-    if (!$user)
-        return 'User not found';
+    try {
+        $allUsers = \App\Models\User::all();
+        $targetUser = \App\Models\User::where('email', 'admin@apextime.in')->first();
 
-    // Reset password just in case
-    $user->password = \Illuminate\Support\Facades\Hash::make('password');
-    $user->save();
+        if (!$targetUser) {
+            // Attempt create
+            try {
+                $targetUser = \App\Models\User::create([
+                    'name' => 'Admin User',
+                    'email' => 'admin@apextime.in',
+                    'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                ]);
+            } catch (\Exception $e) {
+                return 'Error creating user: ' . $e->getMessage();
+            }
+        }
 
-    $check = \Illuminate\Support\Facades\Hash::check('password', $user->password);
-    $login = \Illuminate\Support\Facades\Auth::attempt(['email' => 'admin@apextime.in', 'password' => 'password']);
+        // Reset password just in case
+        $targetUser->password = \Illuminate\Support\Facades\Hash::make('password');
+        $targetUser->save();
 
-    return response()->json([
-        'user_id' => $user->id,
-        'email' => $user->email,
-        'password_hash_check' => $check,
-        'auth_attempt_result' => $login,
-        'session_id' => session()->getId(),
-        'session_driver' => config('session.driver'),
-        'session_domain' => config('session.domain'),
-    ]);
+        $check = \Illuminate\Support\Facades\Hash::check('password', $targetUser->password);
+        $login = \Illuminate\Support\Facades\Auth::attempt(['email' => 'admin@apextime.in', 'password' => 'password']);
+
+        return response()->json([
+            'db_name' => config('database.connections.mysql.database'),
+            'db_host' => config('database.connections.mysql.host'),
+            'user_count' => $allUsers->count(),
+            'all_users_emails' => $allUsers->pluck('email'),
+            'target_user_id' => $targetUser->id,
+            'password_hash_check' => $check,
+            'auth_attempt_result' => $login,
+            'session_id' => session()->getId(),
+        ]);
+    } catch (\Exception $e) {
+        return "Critical Error: " . $e->getMessage() . "\n" . $e->getTraceAsString();
+    }
 });
 
 // Auth Routes
