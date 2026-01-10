@@ -59,7 +59,7 @@ class MobilePunchController extends Controller
         }
 
         $employee = Employee::find(session('mobile_emp_id'));
-        $today = Carbon::now()->format('Y-m-d');
+        $today = Carbon::now('Asia/Kolkata')->format('Y-m-d');
 
         // Check today's status
         $attendance = DailyAttendance::where('employee_id', $employee->id)
@@ -82,8 +82,8 @@ class MobilePunchController extends Controller
         ]);
 
         $employee = Employee::find(session('mobile_emp_id'));
-        $today = Carbon::now()->format('Y-m-d');
-        $now = Carbon::now();
+        $today = Carbon::now('Asia/Kolkata')->format('Y-m-d');
+        $now = Carbon::now('Asia/Kolkata');
 
         // 1. Save Image
         $imageParts = explode(";base64,", $request->image);
