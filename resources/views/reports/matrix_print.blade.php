@@ -98,18 +98,17 @@
     <table class="w-full border-collapse border border-gray-300 print-tiny table-fixed" style="width: 100%">
         <thead>
             <tr class="bg-gray-100/50">
-                <th class="border border-gray-300 p-1 w-12 text-left text-[8px]">Code</th>
-                <th class="border border-gray-300 p-1 w-24 text-left text-[8px]">Employee Name</th>
-                <th class="border border-gray-300 p-1 w-10 text-left text-[8px]">Dept</th>
-                <th class="border border-gray-300 p-1 w-8 text-center bg-gray-50 text-[8px]">Metric</th>
+                <th class="border border-gray-300 p-0.5 w-8 text-left text-[6px]">Code</th>
+                <th class="border border-gray-300 p-0.5 w-14 text-left text-[6px]">Name</th>
+                <th class="border border-gray-300 p-0.5 w-6 text-left text-[6px]">Dept</th>
+                <th class="border border-gray-300 p-0.5 w-6 text-center bg-gray-50 text-[6px]">Met</th>
                 @for($i = 1; $i <= $daysInMonth; $i++)
                     <th class="border border-gray-300 p-0 text-center bg-gray-50">
                         <div class="font-bold border-b border-gray-200 text-[8px]">{{ $i }}</div>
-                        <div class="font-normal text-[7px]">
-                            {{ \Carbon\Carbon::createFromDate($year, $month, $i)->format('D') }}</div>
+                        <div class="font-normal text-[6px]">{{ \Carbon\Carbon::createFromDate($year, $month, $i)->format('D') }}</div>
                     </th>
                 @endfor
-                <th class="border border-gray-300 p-1 w-20 bg-gray-50 text-[8px]">Summary</th>
+                <th class="border border-gray-300 p-0.5 w-14 bg-gray-50 text-[6px]">Sum</th>
             </tr>
         </thead>
         <tbody>
@@ -120,29 +119,27 @@
                     <tr class="{{ $key === 'status' ? 'border-t-2 border-gray-400' : '' }}">
                         @if($loop->first)
                             <td rowspan="{{ $rowSpan }}"
-                                class="border border-gray-300 p-1 align-top bg-gray-50/30 font-bold font-mono">
+                                class="border border-gray-300 p-0.5 align-top bg-gray-50/30 font-bold font-mono text-[7px] break-all leading-tight">
                                 {{ $row['employee']->device_emp_code }}
                             </td>
-                            <td rowspan="{{ $rowSpan }}" class="border border-gray-300 p-1 align-top font-bold">
-                                {{ $row['employee']->name }}
-                                <div class="font-normal text-[8px] text-gray-500 mt-1">{{ $row['employee']->shift->name ?? '' }}
-                                </div>
+                            <td rowspan="{{ $rowSpan }}" class="border border-gray-300 p-0.5 align-top font-bold text-[7px] leading-tight overflow-hidden">
+                                <div class="truncate w-14">{{ $row['employee']->name }}</div>
+                                <div class="font-normal text-[6px] text-gray-500 mt-0.5 truncate w-14">{{ $row['employee']->shift->name ?? '' }}</div>
                             </td>
-                            <td rowspan="{{ $rowSpan }}" class="border border-gray-300 p-1 align-top">
-                                {{ substr($row['employee']->department->name ?? '', 0, 15) }}
+                            <td rowspan="{{ $rowSpan }}" class="border border-gray-300 p-0.5 align-top text-[6px] leading-tight overflow-hidden">
+                                <div class="truncate w-6">{{ substr($row['employee']->department->name ?? '', 0, 15) }}</div>
                             </td>
                         @endif
 
                         <!-- Metric Label -->
-                        <td
-                            class="border border-gray-300 p-0.5 text-center font-semibold text-gray-500 bg-gray-50/50 text-[8px]">
-                            {{ $label }}
+                        <td class="border border-gray-300 p-0 text-center font-semibold text-gray-500 bg-gray-50/50 text-[6px] vertical-align-middle">
+                            {{ substr($label, 0, 4) }}
                         </td>
 
                         <!-- Days -->
                         @for($i = 1; $i <= $daysInMonth; $i++)
                             @php 
-                                                                        $dayData = $row['days'][$i] ?? null;
+                                $dayData = $row['days'][$i] ?? null;
                                 $val = $dayData[$key] ?? '-';
                                 $bgClass = '';
                                 $textClass = '';
@@ -171,21 +168,20 @@
                                             {{ $val === 0 ? '-' : $val }}
                                         </td>
                         @endfor
-                                <!-- Summary Column (Only on first row for clean look, or split?) -->
-                                    @if($loop->first)
-                                        <td rowspan="{{ $rowSpan }}" class="border border-gray-300 p-1 align-top bg-yellow-50/30 text-[8px]">
-                                            <div class="grid grid-cols-2 gap-x-1">
-                                                <span>Pres:</span> <b>{{ $row['summary']['present'] }}</b>
-
-                                         <span>Abs:</span> <b>{{ $row['summary']['absent'] }}</b>
-                                                <span>Late:</span> <b>{{ $row['summary']['late'] }}</b>
-                                                <span>OT:</span> <b>{{ $row['summary']['total_ot'] }}</b>
-                                                <span class="col-span-2 border-t mt-1 pt-1">
-                                                    Dur: <b>{{ $row['summary']['total_duration'] }}</b>
-                                                </span>
-                                            </div>
-                                        </td>
-                                    @endif
+                                    <!-- Summary Column (Only on first row for clean look, or split?) -->
+                            @if($loop->first)
+                                <td rowspan="{{ $rowSpan }}" class="border border-gray-300 p-0.5 align-top bg-yellow-50/30 text-[6px] leading-tight">
+                                    <div class="flex flex-col gap-0.5">
+                                        <div class="flex justify-between"><span>P:</span> <b>{{ $row['summary']['present'] }}</b></div>
+                                        <div class="flex justify-between"><span>A:</span> <b>{{ $row['summary']['absent'] }}</b></div>
+                                        <div class="flex justify-between"><span>L:</span> <b>{{ $row['summary']['late'] }}</b></div>
+                                        <div class="flex justify-between"><span>OT:</span> <b>{{ $row['summary']['total_ot'] }}</b></div>
+                                        <div class="border-t pt-0.5 mt-0.5">
+                                            <b>{{ $row['summary']['total_duration'] }}</b>
+                                        </div>
+                                    </div>
+                                </td>
+                            @endif
                                     </tr>
                 @endforeach
             @endforeach
