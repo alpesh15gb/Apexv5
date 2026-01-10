@@ -8,7 +8,28 @@
                 <h3 class="text-gray-700 text-2xl font-medium">Monthly Assessment Matrix</h3>
                 <p class="text-slate-500 text-sm mt-1">Detailed Work Duration & Overtime</p>
             </div>
-            <div class="mt-4 md:mt-0 flex gap-2 items-center bg-white p-2 rounded-md shadow-sm border border-gray-200">
+            <div
+                class="mt-4 md:mt-0 flex flex-wrap gap-2 items-center bg-white p-2 rounded-md shadow-sm border border-gray-200">
+                <!-- Company Filter -->
+                <select x-model="filters.company_id" @change="fetchData()"
+                    class="border-gray-200 focus:ring-0 text-gray-600 text-sm">
+                    <option value="">All Companies</option>
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                    @endforeach
+                </select>
+                <div class="h-4 w-px bg-gray-300 mx-1"></div>
+
+                <!-- Location Filter -->
+                <select x-model="filters.location_id" @change="fetchData()"
+                    class="border-gray-200 focus:ring-0 text-gray-600 text-sm">
+                    <option value="">All Locations</option>
+                    @foreach($locations as $location)
+                        <option value="{{ $location->id }}">{{ $location->name }}</option>
+                    @endforeach
+                </select>
+                <div class="h-4 w-px bg-gray-300 mx-1"></div>
+
                 <select x-model="month" @change="fetchData()" class="border-none text-sm focus:ring-0">
                     @foreach(range(1, 12) as $m)
                         <option value="{{ $m }}" {{ $m == date('n') ? 'selected' : '' }}>
@@ -144,6 +165,10 @@
             return {
                 month: {{ date('n') }},
                 year: {{ date('Y') }},
+                filters: {
+                    company_id: '',
+                    location_id: ''
+                },
                 loading: false,
                 reportData: [],
                 metricsList: [
@@ -161,7 +186,11 @@
                 },
                 fetchData() {
                     this.loading = true;
-                    fetch(`/reports/matrix-data?month=${this.month}&year=${this.year}`)
+                    let url = `/reports/matrix-data?month=${this.month}&year=${this.year}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+
+                    fetch(url)
                         .then(res => res.json())
                         .then(data => {
                             this.reportData = data.data;
@@ -170,10 +199,16 @@
                         .finally(() => this.loading = false);
                 },
                 exportData() {
-                    window.location.href = `/reports/export/matrix?month=${this.month}&year=${this.year}`;
+                    let url = `/reports/export/matrix?month=${this.month}&year=${this.year}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    window.location.href = url;
                 },
                 printData() {
-                    window.open(`/reports/matrix-print?month=${this.month}&year=${this.year}`, '_blank');
+                    let url = `/reports/matrix-print?month=${this.month}&year=${this.year}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    window.open(url, '_blank');
                 },
                 getDayInitial(day) {
                     const date = new Date(this.year, this.month - 1, day);

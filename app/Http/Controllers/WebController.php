@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Services\ReportService;
+use App\Models\Company;
+use App\Models\Location;
+use App\Models\Department;
 
 class WebController extends Controller
 {
@@ -22,14 +24,20 @@ class WebController extends Controller
     public function monthlyReportView()
     {
         return view('reports.monthly', [
-            'serverDate' => \Carbon\Carbon::today()->format('Y-m')
+            'serverDate' => \Carbon\Carbon::today()->format('Y-m'),
+            'companies' => Company::all(),
+            'locations' => Location::all(),
+            'departments' => Department::all()
         ]);
     }
 
     public function dailyReportView()
     {
         return view('reports.daily', [
-            'serverDate' => \Carbon\Carbon::today()->format('Y-m-d')
+            'serverDate' => \Carbon\Carbon::today()->format('Y-m-d'),
+            'companies' => Company::all(),
+            'locations' => Location::all(),
+            'departments' => Department::all()
         ]);
     }
 
@@ -37,14 +45,20 @@ class WebController extends Controller
     {
         return view('reports.weekly', [
             'startDate' => \Carbon\Carbon::now()->startOfWeek()->format('Y-m-d'),
-            'endDate' => \Carbon\Carbon::now()->endOfWeek()->format('Y-m-d')
+            'endDate' => \Carbon\Carbon::now()->endOfWeek()->format('Y-m-d'),
+            'companies' => Company::all(),
+            'locations' => Location::all(),
+            'departments' => Department::all()
         ]);
     }
 
     public function matrixReportView()
     {
         return view('reports.matrix', [
-            'serverDate' => \Carbon\Carbon::today()->format('Y-m')
+            'serverDate' => \Carbon\Carbon::today()->format('Y-m'),
+            'companies' => Company::all(),
+            'locations' => Location::all(),
+            'departments' => Department::all()
         ]);
     }
 
@@ -52,7 +66,7 @@ class WebController extends Controller
     {
         $month = $request->input('month', \Carbon\Carbon::now()->month);
         $year = $request->input('year', \Carbon\Carbon::now()->year);
-        $filters = $request->only(['department_id']);
+        $filters = $request->only(['department_id', 'company_id', 'location_id']);
 
         $data = $this->reportService->getMatrixReport($month, $year, $filters);
         $serverDate = \Carbon\Carbon::createFromDate($year, $month, 1);

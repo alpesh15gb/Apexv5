@@ -8,7 +8,28 @@
                 <p class="text-slate-500 mt-1">Logs from <span x-text="startDate"></span> to <span x-text="endDate"></span>
                 </p>
             </div>
-            <div class="mt-4 md:mt-0 flex gap-2 items-center bg-white p-2 rounded-md shadow-sm border border-gray-200">
+            <div
+                class="mt-4 md:mt-0 flex flex-wrap gap-2 items-center bg-white p-2 rounded-md shadow-sm border border-gray-200">
+                <!-- Company Filter -->
+                <select x-model="filters.company_id" @change="fetchData()"
+                    class="border-gray-200 focus:ring-0 text-gray-600 text-sm">
+                    <option value="">All Companies</option>
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                    @endforeach
+                </select>
+                <div class="h-4 w-px bg-gray-300 mx-1"></div>
+
+                <!-- Location Filter -->
+                <select x-model="filters.location_id" @change="fetchData()"
+                    class="border-gray-200 focus:ring-0 text-gray-600 text-sm">
+                    <option value="">All Locations</option>
+                    @foreach($locations as $location)
+                        <option value="{{ $location->id }}">{{ $location->name }}</option>
+                    @endforeach
+                </select>
+                <div class="h-4 w-px bg-gray-300 mx-1"></div>
+
                 <input type="date" x-model="startDate" class="border-none focus:ring-0 text-sm">
                 <span class="text-gray-400">to</span>
                 <input type="date" x-model="endDate" class="border-none focus:ring-0 text-sm">
@@ -30,6 +51,7 @@
         </div>
 
         <div class="bg-white rounded-lg shadow-sm border border-slate-100">
+            <!-- Table content -->
             <template x-if="loading">
                 <div class="p-8 text-center text-slate-500">Loading data...</div>
             </template>
@@ -79,11 +101,11 @@
                                         <td class="px-2 py-2">
                                             <span class="px-2 inline-flex text-[10px] leading-4 font-semibold rounded-full"
                                                 :class="{
-                                                'bg-green-100 text-green-800': record.status === 'Present',
-                                                'bg-red-100 text-red-800': record.status === 'Absent',
-                                                'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
-                                                'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
-                                            }" x-text="record.status">
+                                                    'bg-green-100 text-green-800': record.status === 'Present',
+                                                    'bg-red-100 text-red-800': record.status === 'Absent',
+                                                    'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
+                                                    'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
+                                                }" x-text="record.status">
                                             </span>
                                         </td>
                                     </tr>
@@ -105,11 +127,19 @@
             return {
                 startDate: '{{ $startDate }}',
                 endDate: '{{ $endDate }}',
+                filters: {
+                    company_id: '',
+                    location_id: ''
+                },
                 loading: false,
                 groupedData: {},
                 fetchData() {
                     this.loading = true;
-                    fetch(`/reports/detailed?start_date=${this.startDate}&end_date=${this.endDate}`)
+                    let url = `/reports/detailed?start_date=${this.startDate}&end_date=${this.endDate}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+
+                    fetch(url)
                         .then(res => res.json())
                         .then(data => {
                             this.groupedData = data.data;
@@ -118,7 +148,10 @@
                         .finally(() => this.loading = false);
                 },
                 exportData() {
-                    window.location.href = `/reports/export/weekly?start_date=${this.startDate}&end_date=${this.endDate}`;
+                    let url = `/reports/export/weekly?start_date=${this.startDate}&end_date=${this.endDate}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    window.location.href = url;
                 },
                 formatTime(datetime) {
                     if (!datetime) return '-';

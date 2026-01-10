@@ -153,11 +153,15 @@ class ReportService
         $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
 
-        // Get employees with department and shift
-        $employees = Employee::with(['department', 'shift'])
+        // Fetch employees
+        $employees = Employee::with(['department.location.branch.company', 'shift']) // eager load for performance
             ->where('is_active', true)
-            ->when(!empty($filters['department_id']), function ($q) use ($filters) {
-                $q->where('department_id', $filters['department_id']);
+            ->when(!empty($filters['department_id']), fn($q) => $q->where('department_id', $filters['department_id']))
+            ->when(!empty($filters['location_id']), function ($q) use ($filters) {
+                $q->whereHas('department', fn($q) => $q->where('location_id', $filters['location_id']));
+            })
+            ->when(!empty($filters['company_id']), function ($q) use ($filters) {
+                $q->whereHas('department.location.branch', fn($q) => $q->where('company_id', $filters['company_id']));
             })
             ->get();
 
@@ -408,10 +412,10 @@ class ReportService
     /**
      * Export Monthly Register to CSV
      */
-    public function exportMonthlyRegister($month, $year)
+    public function exportMonthlyRegister($month, $year, $filters = [])
     {
         // Reuse getMonthlyRegister to get the data
-        $data = $this->getMonthlyRegister($month, $year);
+        $data = $this->getMonthlyRegister($month, $year, $filters);
         $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
 
         $callback = function () use ($data, $daysInMonth) {

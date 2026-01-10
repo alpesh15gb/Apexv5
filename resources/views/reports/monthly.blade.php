@@ -7,11 +7,28 @@
                 <h3 class="text-gray-700 text-3xl font-medium">Monthly Register</h3>
                 <p class="text-slate-500 mt-1">Attendance records for <span x-text="monthName"></span></p>
             </div>
-            <div class="mt-4 md:mt-0 flex gap-2">
+            <div class="mt-4 md:mt-0 flex flex-wrap gap-2">
+                <!-- Company Filter -->
+                <select x-model="filters.company_id" @change="fetchData()"
+                    class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm text-sm">
+                    <option value="">All Companies</option>
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                    @endforeach
+                </select>
+
+                <!-- Location Filter -->
+                <select x-model="filters.location_id" @change="fetchData()"
+                    class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm text-sm">
+                    <option value="">All Locations</option>
+                    @foreach($locations as $location)
+                        <option value="{{ $location->id }}">{{ $location->name }}</option>
+                    @endforeach
+                </select>
+
                 <input type="month" x-model="selectedMonth" @change="fetchData()"
                     class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm">
-                <button
-                    @click="exportData()"
+                <button @click="exportData()"
                     class="bg-apex-600 text-white px-4 py-2 rounded-md hover:bg-apex-700 focus:outline-none flex items-center">
                     <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -23,6 +40,7 @@
         </div>
 
         <div class="overflow-x-auto bg-white rounded-lg shadow-sm border border-slate-100">
+            <!-- (Table Content) -->
             <template x-if="loading">
                 <div class="p-8 text-center text-slate-500">Loading data...</div>
             </template>
@@ -53,16 +71,16 @@
                             <template x-for="day in daysInMonth" :key="day">
                                 <td class="px-1 py-2 text-center border-l border-slate-100">
                                     <!-- Timings Cell -->
-                                    <div class="flex items-center justify-center w-full h-full min-h-[30px] p-1 rounded" 
+                                    <div class="flex items-center justify-center w-full h-full min-h-[30px] p-1 rounded"
                                         :class="{
-                                            'bg-green-100 text-green-700': emp.days[day] && emp.days[day].status === 'P',
-                                            'bg-red-100 text-red-700': emp.days[day] && emp.days[day].status === 'A',
-                                            'bg-yellow-100 text-yellow-700': emp.days[day] && (emp.days[day].status === 'L' || emp.days[day].status === 'HD'),
-                                            'bg-blue-50 text-blue-600': emp.days[day] && emp.days[day].status === 'H',
-                                            'bg-slate-50 text-slate-300': !emp.days[day]
-                                        }">
-                                        <span class="text-[9px] font-bold whitespace-nowrap" 
-                                              x-text="emp.days[day] ? emp.days[day].label : '-'">
+                                                'bg-green-100 text-green-700': emp.days[day] && emp.days[day].status === 'P',
+                                                'bg-red-100 text-red-700': emp.days[day] && emp.days[day].status === 'A',
+                                                'bg-yellow-100 text-yellow-700': emp.days[day] && (emp.days[day].status === 'L' || emp.days[day].status === 'HD'),
+                                                'bg-blue-50 text-blue-600': emp.days[day] && emp.days[day].status === 'H',
+                                                'bg-slate-50 text-slate-300': !emp.days[day]
+                                            }">
+                                        <span class="text-[9px] font-bold whitespace-nowrap"
+                                            x-text="emp.days[day] ? emp.days[day].label : '-'">
                                         </span>
                                     </div>
                                 </td>
@@ -85,6 +103,10 @@
         function monthlyRegister() {
             return {
                 selectedMonth: '{{ $serverDate }}', // Initialize with server date
+                filters: {
+                    company_id: '',
+                    location_id: ''
+                },
                 loading: false,
                 reportData: [],
                 daysInMonth: [],
@@ -100,7 +122,11 @@
                     const days = new Date(year, month, 0).getDate();
                     this.daysInMonth = Array.from({ length: days }, (_, i) => i + 1);
 
-                    fetch(`/api/reports/monthly?month=${month}&year=${year}`)
+                    let url = `/api/reports/monthly?month=${month}&year=${year}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+
+                    fetch(url)
                         .then(res => res.json())
                         .then(data => {
                             this.reportData = Object.values(data.data); // Ensure array
@@ -112,7 +138,10 @@
                 },
                 exportData() {
                     const [year, month] = this.selectedMonth.split('-');
-                    window.location.href = `/reports/export/monthly?month=${month}&year=${year}`;
+                    let url = `/reports/export/monthly?month=${month}&year=${year}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    window.location.href = url;
                 }
             }
         }

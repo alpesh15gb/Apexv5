@@ -7,7 +7,25 @@
                 <h3 class="text-gray-700 text-3xl font-medium">Daily Attendance</h3>
                 <p class="text-slate-500 mt-1">Status for <span x-text="dateLabel"></span></p>
             </div>
-            <div class="mt-4 md:mt-0 flex gap-2">
+            <div class="mt-4 md:mt-0 flex flex-wrap gap-2">
+                <!-- Company Filter -->
+                <select x-model="filters.company_id" @change="fetchData()"
+                    class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm text-sm">
+                    <option value="">All Companies</option>
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                    @endforeach
+                </select>
+
+                <!-- Location Filter -->
+                <select x-model="filters.location_id" @change="fetchData()"
+                    class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm text-sm">
+                    <option value="">All Locations</option>
+                    @foreach($locations as $location)
+                        <option value="{{ $location->id }}">{{ $location->name }}</option>
+                    @endforeach
+                </select>
+
                 <input type="date" x-model="selectedDate" @change="fetchData()"
                     class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm">
 
@@ -23,12 +41,14 @@
         </div>
 
         <div class="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden">
+            <!-- Table wrapper -->
             <template x-if="loading">
                 <div class="p-8 text-center text-slate-500">Loading data...</div>
             </template>
 
             <div class="overflow-x-auto">
                 <table x-show="!loading" class="w-full whitespace-no-wrap table-auto">
+                    <!-- existing table content -->
                     <thead>
                         <tr
                             class="text-left font-bold bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider">
@@ -67,11 +87,11 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{
-                                                'bg-green-100 text-green-800': record.status === 'Present',
-                                                'bg-red-100 text-red-800': record.status === 'Absent',
-                                                'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
-                                                'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
-                                            }" x-text="record.status">
+                                                    'bg-green-100 text-green-800': record.status === 'Present',
+                                                    'bg-red-100 text-red-800': record.status === 'Absent',
+                                                    'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
+                                                    'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
+                                                }" x-text="record.status">
                                     </span>
                                 </td>
                             </tr>
@@ -91,6 +111,10 @@
         function dailyReport() {
             return {
                 selectedDate: '{{ $serverDate }}',
+                filters: {
+                    company_id: '',
+                    location_id: ''
+                },
                 loading: false,
                 reportData: [],
                 get dateLabel() {
@@ -100,7 +124,11 @@
                 },
                 fetchData() {
                     this.loading = true;
-                    fetch(`/api/reports/daily?date=${this.selectedDate}`)
+                    let url = `/api/reports/daily?date=${this.selectedDate}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+
+                    fetch(url)
                         .then(res => res.json())
                         .then(data => {
                             this.reportData = data.data;
@@ -109,7 +137,10 @@
                         .finally(() => this.loading = false);
                 },
                 exportData() {
-                    window.location.href = `/reports/export/daily?date=${this.selectedDate}`;
+                    let url = `/reports/export/daily?date=${this.selectedDate}`;
+                    if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
+                    if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    window.location.href = url;
                 },
                 formatTime(datetime) {
                     if (!datetime) return null;
