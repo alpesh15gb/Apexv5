@@ -35,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/daily-view', [WebController::class, 'dailyReportView'])->name('reports.daily');
     Route::get('/reports/weekly-view', [WebController::class, 'weeklyReportView'])->name('reports.weekly');
     Route::get('/reports/matrix-view', [WebController::class, 'matrixReportView'])->name('reports.matrix');
+    Route::get('/reports/matrix-print', [WebController::class, 'matrixPrintView'])->name('reports.matrix.print');
 
     // Data/Export Routes
     Route::get('/reports/detailed', [\App\Http\Controllers\ReportController::class, 'detailedReport']); // For JSON data
