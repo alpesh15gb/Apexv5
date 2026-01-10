@@ -267,6 +267,64 @@ class ReportService
     }
 
     /**
+     * Export Matrix Report
+     */
+    public function exportMatrixReport($month, $year, $filters = [])
+    {
+        $data = $this->getMatrixReport($month, $year, $filters);
+        $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+
+        $headers = [
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename=monthly-matrix-report.csv',
+            'Expires' => '0',
+            'Pragma' => 'public'
+        ];
+
+        return response()->stream(function () use ($data, $daysInMonth) {
+            $file = fopen('php://output', 'w');
+
+            // Header Row
+            $headerRow = ['Emp Code', 'Emp Name', 'Dept', 'Metric'];
+            for ($i = 1; $i <= $daysInMonth; $i++) {
+                $headerRow[] = $i;
+            }
+            fputcsv($file, $headerRow);
+
+            foreach ($data as $row) {
+                // We define which metrics to export as rows
+                $metrics = [
+                    'status' => 'Status',
+                    'in_time' => 'In Time',
+                    'out_time' => 'Out Time',
+                    'duration' => 'Duration',
+                    'late_by' => 'Late By (Min)',
+                    'early_by' => 'Early By (Min)',
+                    'ot' => 'OT (Min)'
+                ];
+
+                foreach ($metrics as $key => $label) {
+                    $csvRow = [
+                        $row['employee']->device_emp_code,
+                        $row['employee']->name,
+                        $row['employee']->department->name ?? '-',
+                        $label
+                    ];
+
+                    for ($i = 1; $i <= $daysInMonth; $i++) {
+                        $val = $row['days'][$i][$key] ?? '-';
+                        $csvRow[] = $val;
+                    }
+                    fputcsv($file, $csvRow);
+                }
+                // Separator row for readability? Or just keep it tight.
+            }
+            fclose($file);
+        }, 200, $headers);
+    }
+
+    /**
      * Get Summary Stats for Dashboard
      */
     public function getDashboardStats($date)

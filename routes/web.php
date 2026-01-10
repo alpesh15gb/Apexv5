@@ -40,6 +40,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/detailed', [\App\Http\Controllers\ReportController::class, 'detailedReport']); // For JSON data
     Route::get('/reports/matrix-data', [\App\Http\Controllers\ReportController::class, 'matrixReport']); // For JSON data
     Route::get('/reports/export/monthly', [\App\Http\Controllers\ReportController::class, 'monthlyExport'])->name('reports.monthly.export');
+    Route::get('/reports/export/matrix', [\App\Http\Controllers\ReportController::class, 'matrixExport'])->name('reports.matrix.export');
     Route::get('/reports/export/daily', [\App\Http\Controllers\ReportController::class, 'dailyExport'])->name('reports.daily.export');
     Route::get('/reports/export/weekly', [\App\Http\Controllers\ReportController::class, 'weeklyExport'])->name('reports.weekly.export');
 

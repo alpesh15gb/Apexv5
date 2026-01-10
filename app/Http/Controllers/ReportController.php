@@ -128,6 +128,15 @@ class ReportController extends Controller
         ]);
     }
 
+    public function matrixExport(Request $request)
+    {
+        $month = $request->input('month', Carbon::now()->month);
+        $year = $request->input('year', Carbon::now()->year);
+        $filters = $request->only(['department_id']);
+
+        return $this->reportService->exportMatrixReport($month, $year, $filters);
+    }
+
     public function dashboardStats(Request $request)
     {
         $date = $request->input('date', Carbon::today()->toDateString());
