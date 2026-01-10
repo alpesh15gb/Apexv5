@@ -5,11 +5,11 @@
 #region Configuration
 $MSSQL_SERVER = "localhost"  # Change to your SQL Server address
 $MSSQL_DATABASE = "Etimetracklite1"
-$MSSQL_USERNAME = "sa"
-$MSSQL_PASSWORD = "your_password"  # UPDATE THIS
+$MSSQL_USERNAME = "essl"
+$MSSQL_PASSWORD = "Keystone@456"
 
-$APEXV5_API_URL = "http://ho.apextime.in/api/punches/import"  # Your ApexV5 server URL
-$APEXV5_API_TOKEN = ""  # Optional: Add if you implement API authentication
+$APEXV5_API_URL = "https://ho.apextime.in/api/punches/import"  # Your ApexV5 server URL
+$APEXV5_API_TOKEN = "secret-token"  # Use value from .env SYNC_API_TOKEN
 
 # Sync settings
 $DAYS_TO_SYNC = 90  # Sync last 90 days of data

@@ -87,11 +87,11 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{
-                                                    'bg-green-100 text-green-800': record.status === 'Present',
-                                                    'bg-red-100 text-red-800': record.status === 'Absent',
-                                                    'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
-                                                    'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
-                                                }" x-text="record.status">
+                                                        'bg-green-100 text-green-800': record.status === 'Present',
+                                                        'bg-red-100 text-red-800': record.status === 'Absent',
+                                                        'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
+                                                        'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
+                                                    }" x-text="record.status">
                                     </span>
                                 </td>
                             </tr>
@@ -144,6 +144,8 @@
                 },
                 formatTime(datetime) {
                     if (!datetime) return null;
+                    // Fix: Strip 'Z' to treat as local time (Server sends UTC formatted string for IST stored time)
+                    if (datetime.endsWith('Z')) datetime = datetime.slice(0, -1);
                     return new Date(datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
                 }
             }
