@@ -142,8 +142,9 @@ class ReportController extends Controller
     {
         $date = $request->input('date', Carbon::today()->toDateString());
 
+        // Basic Counts (Fast)
         $present_count = \App\Models\DailyAttendance::where('date', $date)
-            ->where('status', 'Present')
+            ->whereIn('status', ['Present', 'Half Day'])
             ->count();
 
         $absent_count = \App\Models\DailyAttendance::where('date', $date)
@@ -156,23 +157,10 @@ class ReportController extends Controller
 
         $total_staff = \App\Models\Employee::where('is_active', true)->count();
 
-        // If attendance hasn't been calculated for today, Absent count might be 0.
-        // We should really count absents as Total - Present (roughly) if records are missing, 
-        // but let's rely on DailyAttendance being generated.
-
-        // Recent Activity (Last 5 punches)
-        $recent_punches = \App\Models\PunchLog::with('employee')
-            ->orderBy('punch_time', 'desc')
-            ->take(5)
-            ->get()
-            ->map(function ($punch) {
-                return [
-                    'emp_name' => $punch->employee->name ?? 'Unknown',
-                    'emp_code' => $punch->employee->device_emp_code ?? '-',
-                    'time' => \Carbon\Carbon::parse($punch->punch_time)->format('H:i:s'), // ReportService fix logic implies we might need format here too if using raw DB
-                    'direction' => $punch->type // IN/OUT/NA
-                ];
-            });
+        // Enhanced Stats via Service
+        $weekly_stats = $this->reportService->getWeeklyStats();
+        $department_stats = $this->reportService->getDepartmentStats();
+        $recent_punches = $this->reportService->getRecentPunches();
 
         return response()->json([
             'date' => $date,
@@ -180,6 +168,8 @@ class ReportController extends Controller
             'absent' => $absent_count,
             'late' => $late_count,
             'total_staff' => $total_staff,
+            'weekly_stats' => $weekly_stats,
+            'department_stats' => $department_stats,
             'recent_punches' => $recent_punches
         ]);
     }

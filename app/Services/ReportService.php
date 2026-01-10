@@ -593,4 +593,97 @@ class ReportService
 
         return $callback;
     }
+    /**
+     * Get Weekly Attendance Trend (Last 7 Days)
+     */
+    public function getWeeklyStats()
+    {
+        $dates = collect(\Carbon\CarbonPeriod::create(Carbon::today()->subDays(6), Carbon::today()));
+
+        $stats = DailyAttendance::whereDate('date', '>=', Carbon::today()->subDays(6))
+            ->select('date', 'status')
+            ->get()
+            ->groupBy(fn($item) => $item->date->format('Y-m-d'));
+
+        return $dates->map(function ($date) use ($stats) {
+            $dayStats = $stats->get($date->format('Y-m-d'), collect());
+            return [
+                'date' => $date->format('D, d M'), // Mon, 12 Jan
+                'present' => $dayStats->whereIn('status', ['Present', 'Half Day'])->count(),
+                'absent' => $dayStats->where('status', 'Absent')->count(),
+                'late' => $dayStats->where('late_minutes', '>', 0)->count()
+            ];
+        })->values();
+    }
+    /**
+     * Get Department-wise Presence Stats
+     */
+    public function getDepartmentStats()
+    {
+        $today = \Carbon\Carbon::today();
+
+        // accurate total count per department
+        $departments = \App\Models\Department::withCount([
+            'employees' => function ($q) {
+                $q->where('is_active', true);
+            }
+        ])->having('employees_count', '>', 0)->get();
+
+        $attendance = DailyAttendance::whereDate('date', $today)
+            ->whereIn('status', ['Present', 'Half Day'])
+            ->with('employee')
+            ->get()
+            ->groupBy('employee.department_id');
+
+        return $departments->map(function ($dept) use ($attendance) {
+            $present = $attendance->get($dept->id, collect())->count();
+            $percentage = $dept->employees_count > 0 ? round(($present / $dept->employees_count) * 100) : 0;
+
+            return [
+                'name' => $dept->name,
+                'total' => $dept->employees_count,
+                'present' => $present,
+                'percentage' => $percentage
+            ];
+        })->sortByDesc('percentage')->take(5)->values();
+    }
+
+    /**
+     * Get Recent Punches (Live Feed)
+     */
+    public function getRecentPunches()
+    {
+        return DailyAttendance::whereDate('date', \Carbon\Carbon::today())
+            ->where(function ($q) {
+                $q->whereNotNull('in_time')->orWhereNotNull('out_time');
+            })
+            ->with('employee')
+            ->orderBy('updated_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function ($record) {
+                // Determine if this was an IN or OUT punch based on which time is closer to now
+                $time = $record->updated_at->setTimezone('Asia/Kolkata')->format('H:i');
+                $direction = 'LOG';
+                $image = null;
+
+                // Simple logic: if out_time is set and close to updated_at, it's OUT, else IN
+                if ($record->out_time && $record->updated_at->diffInMinutes($record->out_time) < 5) {
+                    $direction = 'OUT';
+                    $image = $record->out_image;
+                } elseif ($record->in_time) {
+                    $direction = 'IN';
+                    $image = $record->in_image;
+                }
+
+                return [
+                    'emp_name' => $record->employee->name ?? 'Unknown',
+                    'emp_code' => $record->employee->device_emp_code ?? '-',
+                    'time' => $time,
+                    'direction' => $direction,
+                    'image' => $image ? asset($image) : null,
+                    'is_mobile' => !empty($image)
+                ];
+            });
+    }
 }
