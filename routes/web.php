@@ -69,3 +69,21 @@ Route::get('mobile/punch', [\App\Http\Controllers\MobilePunchController::class, 
 Route::post('mobile/punch', [\App\Http\Controllers\MobilePunchController::class, 'storePunch'])->name('mobile.punch.store');
 Route::get('mobile/logout', [\App\Http\Controllers\MobilePunchController::class, 'logout'])->name('mobile.logout');
 
+Route::get('/debug-punches', function () {
+    $mobile = \App\Models\DailyAttendance::whereNotNull('in_image')->latest('id')->first();
+    $biometric = \App\Models\DailyAttendance::whereNull('in_image')->whereNotNull('in_time')->latest('id')->first();
+
+    return response()->json([
+        'server_now_ist' => now()->setTimezone('Asia/Kolkata')->format('Y-m-d H:i:s'),
+        'server_now_utc' => now()->setTimezone('UTC')->format('Y-m-d H:i:s'),
+        'mobile_punch' => $mobile ? [
+            'raw' => $mobile->getAttributes(),
+            'cast_in_time' => $mobile->in_time ? $mobile->in_time->format('Y-m-d H:i:s') : null,
+        ] : null,
+        'biometric_punch' => $biometric ? [
+            'raw' => $biometric->getAttributes(),
+            'cast_in_time' => $biometric->in_time ? $biometric->in_time->format('Y-m-d H:i:s') : null
+        ] : null
+    ]);
+});
+
