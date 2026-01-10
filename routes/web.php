@@ -61,3 +61,10 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('holidays', \App\Http\Controllers\HolidayController::class)->only(['index', 'store', 'destroy']);
 
 }); // End Auth Middleware
+
+// --- Mobile App Routes (ESS) ---
+Route::get('mobile/login', [\App\Http\Controllers\MobilePunchController::class, 'showLogin'])->name('mobile.login');
+Route::post('mobile/login', [\App\Http\Controllers\MobilePunchController::class, 'login'])->name('mobile.login.post');
+Route::get('mobile/punch', [\App\Http\Controllers\MobilePunchController::class, 'showPunch'])->name('mobile.punch');
+Route::post('mobile/punch', [\App\Http\Controllers\MobilePunchController::class, 'storePunch'])->name('mobile.punch.store');
+Route::get('mobile/logout', [\App\Http\Controllers\MobilePunchController::class, 'logout'])->name('mobile.logout');

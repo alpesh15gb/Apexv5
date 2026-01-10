@@ -15,6 +15,10 @@ class DailyAttendance extends Model
         'date' => 'date',
         'in_time' => 'datetime',
         'out_time' => 'datetime',
+        'in_lat' => 'decimal:8',
+        'in_long' => 'decimal:8',
+        'out_lat' => 'decimal:8',
+        'out_long' => 'decimal:8',
         'is_finalized' => 'boolean',
     ];
 

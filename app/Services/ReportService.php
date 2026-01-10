@@ -121,9 +121,30 @@ class ReportService
             ->get()
             ->groupBy('employee_id');
 
+        // Fetch Holidays for the month
+        $holidays = \App\Models\Holiday::whereBetween('date', [$startDate, $endDate])
+            ->pluck('date')
+            ->map(fn($d) => $d->format('Y-m-d'))
+            ->toArray();
+
+        // Fetch Approved Leaves for the month
+        $leaves = \App\Models\Leave::with('leaveType')
+            ->where('status', 'approved')
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate, $endDate])
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($sub) use ($startDate, $endDate) {
+                        $sub->where('start_date', '<', $startDate)
+                            ->where('end_date', '>', $endDate);
+                    });
+            })
+            ->get()
+            ->groupBy('employee_id');
+
         // Transform into a matrix structure: Employee -> [Day 1 => Status, Day 2 => Status, ...]
-        $report = $employees->map(function ($employee) use ($attendances, $startDate, $endDate) {
+        $report = $employees->map(function ($employee) use ($attendances, $startDate, $endDate, $holidays, $leaves) {
             $empAttendance = $attendances->get($employee->id, collect());
+            $empLeaves = $leaves->get($employee->id, collect());
 
             $days = [];
             $presentCount = 0;
@@ -132,13 +153,27 @@ class ReportService
 
             $period = \Carbon\CarbonPeriod::create($startDate, $endDate);
             foreach ($period as $date) {
-                // Fix: Compare formatted date strings explicitly. 
-                // $empAttendance items have 'date' as Carbon object due to casting.
-                $record = $empAttendance->first(function ($item) use ($date) {
-                    return $item->date->format('Y-m-d') === $date->format('Y-m-d');
+                $dateStr = $date->format('Y-m-d');
+                $record = $empAttendance->first(function ($item) use ($dateStr) {
+                    return $item->date->format('Y-m-d') === $dateStr;
                 });
 
                 $status = $record ? $record->status : 'Absent'; // Default to Absent if no record
+
+                // Override Absent with Holiday or Leave
+                if ($status === 'Absent') {
+                    if (in_array($dateStr, $holidays)) {
+                        $status = 'Holiday';
+                    } else {
+                        // Check for Leave
+                        $leave = $empLeaves->first(function ($l) use ($date) {
+                            return $date->between($l->start_date, $l->end_date);
+                        });
+                        if ($leave) {
+                            $status = $leave->leaveType->code ?? 'Leave';
+                        }
+                    }
+                }
 
                 // Abbreviations for the register view
                 $shortStatus = match ($status) {
@@ -214,9 +249,30 @@ class ReportService
             ->get()
             ->groupBy('employee_id');
 
+        // Fetch Holidays for the month
+        $holidays = \App\Models\Holiday::whereBetween('date', [$startDate, $endDate])
+            ->pluck('date')
+            ->map(fn($d) => $d->format('Y-m-d'))
+            ->toArray();
+
+        // Fetch Approved Leaves
+        $leaves = \App\Models\Leave::with('leaveType')
+            ->where('status', 'approved')
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate, $endDate])
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($sub) use ($startDate, $endDate) {
+                        $sub->where('start_date', '<', $startDate)
+                            ->where('end_date', '>', $endDate);
+                    });
+            })
+            ->get()
+            ->groupBy('employee_id');
+
         // Build Matrix
-        return $employees->map(function ($employee) use ($attendances, $startDate, $endDate) {
+        return $employees->map(function ($employee) use ($attendances, $startDate, $endDate, $holidays, $leaves) {
             $empAttendance = $attendances->get($employee->id, collect());
+            $empLeaves = $leaves->get($employee->id, collect());
             $days = [];
 
             // Summary Counters
@@ -230,8 +286,9 @@ class ReportService
 
             $period = \Carbon\CarbonPeriod::create($startDate, $endDate);
             foreach ($period as $date) {
-                $record = $empAttendance->first(function ($item) use ($date) {
-                    return $item->date->format('Y-m-d') === $date->format('Y-m-d');
+                $dateStr = $date->format('Y-m-d');
+                $record = $empAttendance->first(function ($item) use ($dateStr) {
+                    return $item->date->format('Y-m-d') === $dateStr;
                 });
 
                 $metrics = [
@@ -253,6 +310,20 @@ class ReportService
                         'Holiday' => 'H',
                         default => substr($record->status, 0, 2)
                     };
+
+                    // Override Absent if Holiday or Leave
+                    if ($record->status === 'Absent') {
+                        if (in_array($dateStr, $holidays)) {
+                            $metrics['status'] = 'H';
+                        } else {
+                            $leave = $empLeaves->first(function ($l) use ($date) {
+                                return $date->between($l->start_date, $l->end_date);
+                            });
+                            if ($leave) {
+                                $metrics['status'] = 'L'; // Or use code? Matrix usually uses single char 'L'
+                            }
+                        }
+                    }
 
                     if ($record->in_time)
                         $metrics['in_time'] = $record->in_time->format('H:i');
@@ -291,6 +362,21 @@ class ReportService
                         $leavesCount++;
                 } else {
                     $absentCount++; // Default absent if no record
+
+                    // Check Holiday/Leave for missing records too
+                    if (in_array($dateStr, $holidays)) {
+                        $metrics['status'] = 'H';
+                        $absentCount--; // Revert counter
+                    } else {
+                        $leave = $empLeaves->first(function ($l) use ($date) {
+                            return $date->between($l->start_date, $l->end_date);
+                        });
+                        if ($leave) {
+                            $metrics['status'] = 'L';
+                            $absentCount--; // Revert counter
+                            $leavesCount++;
+                        }
+                    }
                 }
 
                 $days[$date->day] = $metrics;

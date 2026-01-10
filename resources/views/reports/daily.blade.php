@@ -58,6 +58,7 @@
                             <th class="px-6 py-4">In Time</th>
                             <th class="px-6 py-4">Out Time</th>
                             <th class="px-6 py-4">Late</th>
+                            <th class="px-6 py-4">Proof</th>
                             <th class="px-6 py-4">Status</th>
                         </tr>
                     </thead>
@@ -85,13 +86,41 @@
                                         x-text="record.late_minutes + ' m'"></span>
                                     <span x-show="!record.late_minutes">-</span>
                                 </td>
+                                <td class="px-6 py-4 flex gap-2">
+                                    <template x-if="record.in_image">
+                                        <button @click="$dispatch('open-photo', { url: record.in_image })"
+                                            class="text-blue-500 hover:text-blue-700" title="View Photo">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                                                </path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <template x-if="record.in_lat">
+                                        <a :href="`https://www.google.com/maps?q=${record.in_lat},${record.in_long}`"
+                                            target="_blank" class="text-green-500 hover:text-green-700"
+                                            title="View Location">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                                                </path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                        </a>
+                                    </template>
+                                    <span x-show="!record.in_image && !record.in_lat" class="text-slate-300">-</span>
+                                </td>
                                 <td class="px-6 py-4">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{
-                                                                'bg-green-100 text-green-800': record.status === 'Present',
-                                                                'bg-red-100 text-red-800': record.status === 'Absent',
-                                                                'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
-                                                                'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
-                                                            }" x-text="record.status">
+                                                                        'bg-green-100 text-green-800': record.status === 'Present',
+                                                                        'bg-red-100 text-red-800': record.status === 'Absent',
+                                                                        'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
+                                                                        'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
+                                                                    }" x-text="record.status">
                                     </span>
                                 </td>
                             </tr>
@@ -104,6 +133,23 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Photo Modal -->
+    <div x-data="{ open: false, url: '' }" @open-photo.window="open = true; url = $event.detail.url" x-show="open"
+        class="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/80" style="display: none;"
+        x-transition.opacity>
+
+        <div @click.away="open = false" class="bg-white p-2 rounded-lg max-w-lg w-full relative">
+            <button @click="open = false" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <img :src="`/${url}`" alt="Proof" class="w-full h-auto rounded">
         </div>
     </div>
 
