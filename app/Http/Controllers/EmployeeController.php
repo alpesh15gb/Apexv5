@@ -56,7 +56,7 @@ class EmployeeController extends Controller
 
     public function create()
     {
-        $departments = Department::all();
+        $departments = Department::with('location')->get();
         $shifts = Shift::all();
         return view('employees.create', compact('departments', 'shifts'));
     }
@@ -83,7 +83,7 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
-        $departments = Department::all();
+        $departments = Department::with('location')->get();
         $shifts = Shift::all();
         // Split name for display - assuming checking for space
         $parts = explode(' ', $employee->name, 2);

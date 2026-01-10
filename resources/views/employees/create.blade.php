@@ -41,14 +41,23 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="department_id">
-                        Department
+                        Department (Location)
                     </label>
                     <select
                         class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                         id="department_id" name="department_id">
                         <option value="">Select Department</option>
-                        @foreach($departments as $department)
-                            <option value="{{ $department->id }}">{{ $department->name }}</option>
+                        @php
+                            $groupedDepts = $departments->groupBy(function ($item) {
+                                return $item->location->name ?? 'No Location';
+                            });
+                        @endphp
+                        @foreach($groupedDepts as $locationName => $depts)
+                            <optgroup label="{{ $locationName }}">
+                                @foreach($depts as $dept)
+                                    <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                 </div>
