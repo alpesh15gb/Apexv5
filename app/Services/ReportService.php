@@ -82,7 +82,20 @@ class ReportService
                     default => 'A'
                 };
 
-                $days[$date->day] = $shortStatus;
+                $label = $shortStatus;
+                if ($status === 'Present' || $status === 'Half Day') {
+                    if ($record && $record->in_time) {
+                        $in = $record->in_time->format('H:i');
+                        $out = $record->out_time ? $record->out_time->format('H:i') : 'Missing';
+                        $label = "$in - $out";
+                    }
+                }
+
+                $days[$date->day] = [
+                    'status' => $shortStatus,
+                    'label' => $label,
+                    'is_late' => ($record && $record->late_minutes > 0)
+                ];
 
                 if ($status === 'Present')
                     $presentCount++;

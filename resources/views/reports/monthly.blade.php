@@ -51,13 +51,19 @@
 
                             <template x-for="day in daysInMonth" :key="day">
                                 <td class="px-1 py-2 text-center border-l border-slate-100">
-                                    <span class="inline-block w-6 h-6 leading-6 rounded-full text-[10px] font-bold" :class="{
-                                                    'bg-green-100 text-green-700': emp.days[day] === 'P',
-                                                    'bg-red-100 text-red-700': emp.days[day] === 'A',
-                                                    'bg-yellow-100 text-yellow-700': emp.days[day] === 'L',
-                                                    'text-slate-300': !['P','A','L'].includes(emp.days[day])
-                                                }" x-text="emp.days[day] || '-'">
-                                    </span>
+                                    <!-- Timings Cell -->
+                                    <div class="flex items-center justify-center w-full h-full min-h-[30px] p-1 rounded" 
+                                        :class="{
+                                            'bg-green-100 text-green-700': emp.days[day] && emp.days[day].status === 'P',
+                                            'bg-red-100 text-red-700': emp.days[day] && emp.days[day].status === 'A',
+                                            'bg-yellow-100 text-yellow-700': emp.days[day] && (emp.days[day].status === 'L' || emp.days[day].status === 'HD'),
+                                            'bg-blue-50 text-blue-600': emp.days[day] && emp.days[day].status === 'H',
+                                            'bg-slate-50 text-slate-300': !emp.days[day]
+                                        }">
+                                        <span class="text-[9px] font-bold whitespace-nowrap" 
+                                              x-text="emp.days[day] ? emp.days[day].label : '-'">
+                                        </span>
+                                    </div>
                                 </td>
                             </template>
 
