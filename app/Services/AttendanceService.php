@@ -49,9 +49,20 @@ class AttendanceService
             ->orderBy('punch_time', 'asc')
             ->get();
 
+        // Filter duplicates (2-minute debounce)
+        $filteredPunches = new \Illuminate\Database\Eloquent\Collection();
+        $lastPunchTime = null;
+
+        foreach ($punches as $punch) {
+            if (!$lastPunchTime || $punch->punch_time->diffInSeconds($lastPunchTime) >= 120) {
+                $filteredPunches->push($punch);
+                $lastPunchTime = $punch->punch_time;
+            }
+        }
+
         // 3. Determine In/Out
-        $inTime = $punches->first()?->punch_time;
-        $outTime = $punches->count() > 1 ? $punches->last()?->punch_time : null;
+        $inTime = $filteredPunches->first()?->punch_time;
+        $outTime = $filteredPunches->count() > 1 ? $filteredPunches->last()?->punch_time : null;
 
         // 4. Calculate Hours
         $totalHours = 0;
