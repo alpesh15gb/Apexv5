@@ -66,18 +66,21 @@ function Get-DeviceLogs {
                 
                 $query = @"
 SELECT 
-    DeviceLogId,
-    UserId,
-    DeviceId,
-    LogDate,
-    Direction,
-    AttDirection,
-    C1,
-    WorkCode
-FROM $tableName
-WHERE LogDate >= @StartDate 
-  AND LogDate <= @EndDate
-ORDER BY LogDate ASC
+    d.DeviceLogId,
+    d.UserId,
+    d.DeviceId,
+    d.LogDate,
+    d.Direction,
+    d.AttDirection,
+    d.C1,
+    d.WorkCode,
+    u.CardNo,
+    u.Badgenumber
+FROM $tableName d
+LEFT JOIN UserInfo u ON d.UserId = u.UserId
+WHERE d.LogDate >= @StartDate 
+  AND d.LogDate <= @EndDate
+ORDER BY d.LogDate ASC
 "@
                 
                 $cmd = New-Object System.Data.SqlClient.SqlCommand($query, $connection)
@@ -96,6 +99,8 @@ ORDER BY LogDate ASC
                         AttDirection = $reader["AttDirection"]
                         C1           = $reader["C1"]
                         WorkCode     = $reader["WorkCode"]
+                        CardNo       = $reader["CardNo"]
+                        Badgenumber  = $reader["Badgenumber"]
                     }
                 }
                 
@@ -139,6 +144,8 @@ function Convert-ToPunchData {
             punch_time      = $log.LogDate.ToString("yyyy-MM-dd HH:mm:ss")
             type            = $direction
             device_id       = [string]$log.DeviceId
+            card_no         = [string]$log.CardNo
+            emp_code        = [string]$log.Badgenumber
         }
     }
     

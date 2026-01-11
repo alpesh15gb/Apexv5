@@ -111,30 +111,50 @@ class PunchImportService
         $deviceId = $rawPunch->device_id ?? $rawPunch->DeviceId;
         $direction = $rawPunch->type ?? 'NA'; // Default if missing
 
-        // 1. Find employee
-        // Try strict match first
-        $employee = Employee::where('device_emp_code', $deviceLogId)->first();
+        $cardNo = $rawPunch->card_no ?? $rawPunch->CardNo ?? null;
+        $empCode = $rawPunch->emp_code ?? $rawPunch->Badgenumber ?? null;
 
-        // If not found, try stripping leading zeros or "HO/" prefix if applicable
-        if (!$employee) {
-            $normalizedId = ltrim($deviceLogId, '0');
+        $employee = null;
 
-            // Special handling for HO codes without slash (e.g. HO012 -> HO/012)
-            if (stripos($deviceLogId, 'HO') === 0 && strpos($deviceLogId, '/') === false) {
-                $number = preg_replace('/[^0-9]/', '', $deviceLogId);
-                $simpleNumber = ltrim($number, '0');
-                $employee = Employee::where('device_emp_code', 'HO/' . $number)
-                    ->orWhere('device_emp_code', 'HO/' . str_pad($number, 3, '0', STR_PAD_LEFT))
-                    ->orWhere('device_emp_code', 'HO/' . $simpleNumber)
-                    ->first();
-            }
+        // 1. Find employee by Card Number (Highest Priority)
+        if ($cardNo) {
+            $employee = Employee::where('card_number', $cardNo)->first();
+        }
 
+        // 2. Find by Employee Code (Badgenumber from UserInfo)
+        if (!$employee && $empCode) {
+            $employee = Employee::where('device_emp_code', $empCode)->first();
+            // Handle HO/ prefix scenarios if needed
             if (!$employee) {
-                $employee = Employee::where('device_emp_code', $normalizedId)
-                    ->orWhere('device_emp_code', 'HO/' . str_pad($normalizedId, 3, '0', STR_PAD_LEFT))
-                    ->orWhere('device_emp_code', 'MIPA' . $normalizedId)
-                    ->orWhere('device_emp_code', intval($deviceLogId))
-                    ->first();
+                $employee = Employee::where('device_emp_code', 'HO/' . $empCode)->first();
+            }
+        }
+
+        // 3. Fallback to Legacy ID Matching
+        if (!$employee) {
+            $employee = Employee::where('device_emp_code', $deviceLogId)->first();
+
+            // If not found, try stripping leading zeros or "HO/" prefix if applicable
+            if (!$employee) {
+                $normalizedId = ltrim($deviceLogId, '0');
+
+                // Special handling for HO codes without slash (e.g. HO012 -> HO/012)
+                if (stripos($deviceLogId, 'HO') === 0 && strpos($deviceLogId, '/') === false) {
+                    $number = preg_replace('/[^0-9]/', '', $deviceLogId);
+                    $simpleNumber = ltrim($number, '0');
+                    $employee = Employee::where('device_emp_code', 'HO/' . $number)
+                        ->orWhere('device_emp_code', 'HO/' . str_pad($number, 3, '0', STR_PAD_LEFT))
+                        ->orWhere('device_emp_code', 'HO/' . $simpleNumber)
+                        ->first();
+                }
+
+                if (!$employee) {
+                    $employee = Employee::where('device_emp_code', $normalizedId)
+                        ->orWhere('device_emp_code', 'HO/' . str_pad($normalizedId, 3, '0', STR_PAD_LEFT))
+                        ->orWhere('device_emp_code', 'MIPA' . $normalizedId)
+                        ->orWhere('device_emp_code', intval($deviceLogId))
+                        ->first();
+                }
             }
         }
 
