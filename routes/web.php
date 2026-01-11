@@ -94,3 +94,19 @@ Route::get('/debug-punches', function () {
     ]);
 });
 
+Route::get('/debug/recalculate', function () {
+    $service = app(\App\Services\AttendanceService::class);
+    $start = now()->subDays(30);
+    $end = now();
+
+    for ($date = $start; $date <= $end; $date->addDay()) {
+        try {
+            $service->calculateDailyAttendance($date->toDateString());
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Recalc failed for {$date->toDateString()}: " . $e->getMessage());
+        }
+    }
+
+    return "Recalculation triggered for last 30 days.";
+});
+
