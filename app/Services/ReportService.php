@@ -39,6 +39,12 @@ class ReportService
         if (!empty($filters['company_id'])) {
             $employeesQuery->whereHas('department.location.branch', fn($q) => $q->where('company_id', $filters['company_id']));
         }
+        if (!empty($filters['search'])) {
+            $employeesQuery->where(function ($q) use ($filters) {
+                $q->where('name', 'like', '%' . $filters['search'] . '%')
+                    ->orWhere('device_emp_code', 'like', '%' . $filters['search'] . '%');
+            });
+        }
         $employees = $employeesQuery->get();
 
         // 2. Get Attendance for this date for these employees
@@ -136,6 +142,20 @@ class ReportService
             });
         }
 
+        if (!empty($filters['search'])) {
+            $query->whereHas('employee', function ($q) use ($filters) {
+                $q->where('name', 'like', '%' . $filters['search'] . '%')
+                    ->orWhere('device_emp_code', 'like', '%' . $filters['search'] . '%');
+            });
+        }
+
+        if (!empty($filters['search'])) {
+            $query->whereHas('employee', function ($q) use ($filters) {
+                $q->where('name', 'like', '%' . $filters['search'] . '%')
+                    ->orWhere('device_emp_code', 'like', '%' . $filters['search'] . '%');
+            });
+        }
+
         if (!empty($filters['employee_id'])) {
             $query->where('employee_id', $filters['employee_id']);
         }
@@ -172,6 +192,12 @@ class ReportService
             })
             ->when(!empty($filters['company_id']), function ($q) use ($filters) {
                 $q->whereHas('department.location.branch', fn($q) => $q->where('company_id', $filters['company_id']));
+            })
+            ->when(!empty($filters['search']), function ($q) use ($filters) {
+                $q->where(function ($sub) use ($filters) {
+                    $sub->where('name', 'like', '%' . $filters['search'] . '%')
+                        ->orWhere('device_emp_code', 'like', '%' . $filters['search'] . '%');
+                });
             })
             ->get();
 
@@ -300,6 +326,12 @@ class ReportService
             })
             ->when(!empty($filters['company_id']), function ($q) use ($filters) {
                 $q->whereHas('department.location.branch', fn($q) => $q->where('company_id', $filters['company_id']));
+            })
+            ->when(!empty($filters['search']), function ($q) use ($filters) {
+                $q->where(function ($sub) use ($filters) {
+                    $sub->where('name', 'like', '%' . $filters['search'] . '%')
+                        ->orWhere('device_emp_code', 'like', '%' . $filters['search'] . '%');
+                });
             })
             ->get();
 

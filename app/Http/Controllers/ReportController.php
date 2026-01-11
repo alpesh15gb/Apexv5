@@ -18,7 +18,7 @@ class ReportController extends Controller
     public function dailyReport(Request $request)
     {
         $date = $request->input('date', Carbon::today()->toDateString());
-        $filters = $request->only(['department_id', 'status', 'company_id', 'location_id']);
+        $filters = $request->only(['department_id', 'status', 'company_id', 'location_id', 'search']);
 
         $data = $this->reportService->getDailyReport($date, $filters);
 
@@ -34,7 +34,7 @@ class ReportController extends Controller
     {
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
-        $filters = $request->only(['department_id', 'company_id', 'location_id']);
+        $filters = $request->only(['department_id', 'company_id', 'location_id', 'search']);
 
         $data = $this->reportService->getMonthlyRegister($month, $year, $filters);
 
@@ -49,7 +49,7 @@ class ReportController extends Controller
     {
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
-        $filters = $request->only(['department_id', 'company_id', 'location_id']);
+        $filters = $request->only(['department_id', 'company_id', 'location_id', 'search']);
 
         $callback = $this->reportService->exportMonthlyRegister($month, $year, $filters);
 
@@ -67,7 +67,7 @@ class ReportController extends Controller
     public function dailyExport(Request $request)
     {
         $date = $request->input('date', Carbon::today()->toDateString());
-        $filters = $request->only(['department_id', 'status', 'company_id', 'location_id']);
+        $filters = $request->only(['department_id', 'status', 'company_id', 'location_id', 'search']);
 
         $callback = $this->reportService->exportDailyReport($date, $filters);
         $filename = "daily_report_{$date}.csv";
@@ -85,7 +85,7 @@ class ReportController extends Controller
     {
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
-        $filters = $request->only(['department_id', 'employee_id', 'company_id', 'location_id']);
+        $filters = $request->only(['department_id', 'employee_id', 'company_id', 'location_id', 'search']);
 
         $callback = $this->reportService->exportDetailedReport($startDate, $endDate, $filters);
         $filename = "detailed_report_{$startDate}_{$endDate}.csv";
@@ -103,7 +103,7 @@ class ReportController extends Controller
     {
         $startDate = $request->input('start_date', Carbon::now()->startOfWeek()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfWeek()->toDateString());
-        $filters = $request->only(['department_id', 'employee_id', 'company_id', 'location_id']);
+        $filters = $request->only(['department_id', 'employee_id', 'company_id', 'location_id', 'search']);
 
         $data = $this->reportService->getDetailedReport($startDate, $endDate, $filters);
 
@@ -118,7 +118,7 @@ class ReportController extends Controller
     {
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
-        $filters = $request->only(['department_id', 'company_id', 'location_id']);
+        $filters = $request->only(['department_id', 'company_id', 'location_id', 'search']);
 
         $data = $this->reportService->getMatrixReport($month, $year, $filters);
 
@@ -133,7 +133,7 @@ class ReportController extends Controller
     {
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
-        $filters = $request->only(['department_id', 'company_id', 'location_id']);
+        $filters = $request->only(['department_id', 'company_id', 'location_id', 'search']);
 
         return $this->reportService->exportMatrixReport($month, $year, $filters);
     }
