@@ -135,7 +135,7 @@ function Convert-ToPunchData {
     foreach ($log in $DeviceLogs) {
         # Determine punch direction (in/out)
         $direction = "in"
-        if ($log.C1 -eq "out" -or $log.AttDirection -eq "out" -or $log.Direction -eq "out") {
+        if ($log.C1 -match "out" -or $log.AttDirection -match "out" -or $log.Direction -match "out") {
             $direction = "out"
         }
         

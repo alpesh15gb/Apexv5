@@ -158,6 +158,12 @@ class PunchImportService
             }
         }
 
+        // 4. Auto-populate Card Number if found (Self-Healing)
+        if ($employee && $cardNo && $employee->card_number !== $cardNo) {
+            $employee->update(['card_number' => $cardNo]);
+            Log::info("Updated Card Number for Employee {$employee->id} ({$employee->name}): $cardNo");
+        }
+
         // 2. Prevent Duplicates
         $exists = PunchLog::where('device_emp_code', $deviceLogId)
             ->where('punch_time', $punchTime)

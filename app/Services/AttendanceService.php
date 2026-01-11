@@ -49,14 +49,17 @@ class AttendanceService
             ->orderBy('punch_time', 'asc')
             ->get();
 
-        // Filter duplicates (2-minute debounce)
+        // Filter duplicates (2-minute debounce), but allow if type changes (e.g. In -> Out)
         $filteredPunches = new \Illuminate\Database\Eloquent\Collection();
-        $lastPunchTime = null;
+        $lastPunch = null;
 
         foreach ($punches as $punch) {
-            if (!$lastPunchTime || $punch->punch_time->diffInSeconds($lastPunchTime) >= 120) {
+            $isTimeOk = !$lastPunch || $punch->punch_time->diffInSeconds($lastPunch->punch_time) >= 120;
+            $isTypeChanged = $lastPunch && $punch->type !== $lastPunch->type;
+
+            if ($isTimeOk || $isTypeChanged) {
                 $filteredPunches->push($punch);
-                $lastPunchTime = $punch->punch_time;
+                $lastPunch = $punch;
             }
         }
 
