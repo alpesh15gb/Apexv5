@@ -42,10 +42,22 @@ class EmployeeImportService
                 }
 
                 // 1. Resolve Department
-                $department = Department::firstOrCreate(
-                    ['name' => trim($deptName)],
-                    ['description' => 'Auto-imported via Direct Sync']
+                // Ensure a default location exists
+                $location = \App\Models\Location::firstOrCreate(
+                    ['code' => 'HO'],
+                    ['name' => 'Head Office', 'address' => 'Main Address']
                 );
+
+                $department = Department::where('name', trim($deptName))->first();
+
+                if (!$department) {
+                    $department = Department::create([
+                        'name' => trim($deptName),
+                        'code' => strtoupper(substr(trim($deptName), 0, 3)) . rand(100, 999), // Generate simple code
+                        'location_id' => $location->id,
+                        'description' => 'Auto-imported via Direct Sync'
+                    ]);
+                }
 
                 // 2. Find Existing Employee
                 $employee = Employee::where('device_emp_code', $deviceEmpCode)->first();
