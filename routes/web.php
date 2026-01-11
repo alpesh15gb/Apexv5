@@ -128,7 +128,7 @@ Route::get('/debug/status', function () {
     $unlinked_samples = \App\Models\PunchLog::whereNull('employee_id')
         ->where('punch_time', '>=', now()->subDays(2))
         ->take(5)
-        ->get(['device_emp_code', 'card_number', 'punch_time']);
+        ->get(['device_emp_code', 'punch_time']);
 
     return [
         'employees_total' => $employees,
