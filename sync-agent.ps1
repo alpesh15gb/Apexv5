@@ -77,7 +77,7 @@ SELECT
     u.EmployeeRFIDNumber as CardNo,
     u.EmployeeCode as Badgenumber
 FROM $tableName d
-LEFT JOIN Employees u ON d.UserId = u.EmployeeId
+LEFT JOIN Employees u ON CAST(d.UserId AS NVARCHAR(50)) = CAST(u.EmployeeId AS NVARCHAR(50))
 WHERE d.LogDate >= @StartDate 
   AND d.LogDate <= @EndDate
 ORDER BY d.LogDate ASC
