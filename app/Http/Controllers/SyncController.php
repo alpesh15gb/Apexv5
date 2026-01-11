@@ -19,8 +19,10 @@ class SyncController extends Controller
     {
         // 1. Simple Token Authentication
         $token = $request->bearerToken() ?? $request->input('token');
-        if ($token !== env('SYNC_API_TOKEN', 'secret-token')) {
-            Log::warning('Unauthorized sync attempt.');
+        $expected = env('SYNC_API_TOKEN', 'secret-token');
+
+        if ($token !== $expected) {
+            Log::warning('Unauthorized sync attempt. Received: ' . substr($token, 0, 5) . '... Expected: ' . substr($expected, 0, 5) . '...');
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
