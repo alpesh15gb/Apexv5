@@ -7,10 +7,10 @@ $MSSQL_USERNAME = "essl"
 $MSSQL_PASSWORD = "Keystone@456"
 
 # Database Name (Etimetracklite1 only for now)
-$DB_NAME = "Etimetracklite1"
+$DB_NAME = "Hikcentral"
 
 $APEXV5_API_URL = "https://ho.apextime.in/api/employees/sync" # New Endpoint
-$APEXV5_API_TOKEN = "secret-token" # UPDATE THIS
+$APEXV5_API_TOKEN = "Keystone@456" # UPDATE THIS
 
 # Security
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -32,11 +32,24 @@ function Get-Employees {
         $conn.Open()
         Write-Log "Connected to $DB_NAME"
 
-        $query = @"
-SELECT EmployeeCode, EmployeeName, CompanyId, DepartmentId, DesignationId, EmployeeRFIDNumber
+        # Detect Schema
+        if ($DB_NAME -match "Hikcentral") {
+            # HikCentral - Extract unique employees from Logs
+            $query = @"
+SELECT DISTINCT person_id as EmployeeCode, person_name as EmployeeName, card_no as EmployeeRFIDNumber, emp_dept as DepartmentName
+FROM HikvisionLogs
+WHERE person_name IS NOT NULL AND person_name <> ''
+"@
+        }
+        else {
+            # Etimetracklite - Standard Employees Table
+            $query = @"
+SELECT EmployeeCode, EmployeeName, EmployeeRFIDNumber, 'Imported' as DepartmentName
 FROM Employees
 WHERE EmployeeStatus = 'Working'
 "@
+        }
+
         $cmd = New-Object System.Data.SqlClient.SqlCommand($query, $conn)
         $reader = $cmd.ExecuteReader()
         
@@ -45,7 +58,7 @@ WHERE EmployeeStatus = 'Working'
                 device_emp_code = [string]$reader["EmployeeCode"]
                 name            = [string]$reader["EmployeeName"]
                 card_no         = [string]$reader["EmployeeRFIDNumber"]
-                department      = "Imported" # Default for now, as fetching Dept Name requires joins
+                department      = [string]$reader["DepartmentName"]
             }
         }
         $reader.Close()
