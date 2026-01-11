@@ -59,6 +59,9 @@
                             Name</th>
                         <th
                             class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">
+                            Card No.</th>
+                        <th
+                            class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">
                             Location</th>
                         <th
                             class="py-4 px-6 bg-grey-lightest font-bold uppercase text-sm text-grey-dark border-b border-grey-light">
@@ -81,6 +84,9 @@
                                 <input type="checkbox" name="employee_ids[]" value="{{ $employee->id }}" class="emp-checkbox">
                             </td>
                             <td class="py-4 px-6 border-b border-grey-light">{{ $employee->name }}</td>
+                            <td class="py-4 px-6 border-b border-grey-light">
+                                <span class="text-sm text-gray-600">{{ $employee->card_number ?? '-' }}</span>
+                            </td>
                             <td class="py-4 px-6 border-b border-grey-light">
                                 <span class="bg-slate-100 text-slate-700 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">
                                     {{ $employee->department->location->name ?? '-' }}
@@ -112,7 +118,7 @@
         function submitBulkForm(formId) {
             const form = document.getElementById(formId);
             const checkboxes = document.querySelectorAll('.emp-checkbox:checked');
-            
+
             if (checkboxes.length === 0) {
                 alert('Please select at least one employee.');
                 return;

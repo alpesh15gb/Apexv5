@@ -16,6 +16,14 @@
                         id="device_emp_code" type="text" name="device_emp_code" required>
                 </div>
                 <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="card_number">
+                        Card Number
+                    </label>
+                    <input
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        id="card_number" type="text" name="card_number" placeholder="Optional">
+                </div>
+                <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="first_name">
                         First Name
                     </label>

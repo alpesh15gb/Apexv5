@@ -70,6 +70,7 @@ class EmployeeController extends Controller
             'email' => 'nullable|email',
             'department_id' => 'required|exists:departments,id',
             'shift_id' => 'nullable|exists:shifts,id',
+            'card_number' => 'nullable|string|max:50',
         ]);
 
         // Combine first and last name for the single 'name' column in DB
@@ -102,6 +103,7 @@ class EmployeeController extends Controller
             'email' => 'nullable|email',
             'department_id' => 'required|exists:departments,id',
             'shift_id' => 'nullable|exists:shifts,id',
+            'card_number' => 'nullable|string|max:50',
         ]);
 
         $validated['name'] = $validated['first_name'] . ' ' . $validated['last_name'];
