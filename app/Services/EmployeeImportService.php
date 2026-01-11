@@ -58,6 +58,12 @@ class EmployeeImportService
                     ['name' => 'Yellareddy', 'address' => 'Yellareddy', 'branch_id' => $branch->id]
                 );
 
+                // Ensure Default Shift exists
+                $shift = \App\Models\Shift::firstOrCreate(
+                    ['name' => 'General Shift'],
+                    ['start_time' => '09:00:00', 'end_time' => '18:00:00', 'is_night_shift' => false]
+                );
+
                 $department = Department::where('name', trim($deptName))->first();
 
                 if (!$department) {
@@ -83,6 +89,7 @@ class EmployeeImportService
                         'name' => $name,
                         'card_number' => $cardNo, // Update card number if changed
                         'department_id' => $department->id,
+                        'shift_id' => $shift->id, // Ensure shift is assigned
                         'is_active' => true, // Reactivate if was disabled
                     ]);
                     $updated++;
@@ -93,6 +100,7 @@ class EmployeeImportService
                         'name' => $name,
                         'card_number' => $cardNo,
                         'department_id' => $department->id,
+                        'shift_id' => $shift->id, // Assign default shift
                         'joining_date' => now(),
                         'is_active' => true,
                     ]);
