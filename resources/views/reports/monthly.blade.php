@@ -26,6 +26,19 @@
                     @endforeach
                 </select>
 
+                <!-- Search Input -->
+                <div class="relative">
+                    <input type="text" x-model.debounce.500ms="filters.search" @input="fetchData()"
+                        placeholder="Search Name/Code..."
+                        class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm text-sm pl-8 p-2">
+                    <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+
                 <input type="month" x-model="selectedMonth" @change="fetchData()"
                     class="border-gray-300 focus:border-apex-500 focus:ring-apex-500 rounded-md shadow-sm">
                 <button @click="exportData()"
@@ -73,12 +86,12 @@
                                     <!-- Timings Cell -->
                                     <div class="flex items-center justify-center w-full h-full min-h-[30px] p-1 rounded"
                                         :class="{
-                                                'bg-green-100 text-green-700': emp.days[day] && emp.days[day].status === 'P',
-                                                'bg-red-100 text-red-700': emp.days[day] && emp.days[day].status === 'A',
-                                                'bg-yellow-100 text-yellow-700': emp.days[day] && (emp.days[day].status === 'L' || emp.days[day].status === 'HD'),
-                                                'bg-blue-50 text-blue-600': emp.days[day] && emp.days[day].status === 'H',
-                                                'bg-slate-50 text-slate-300': !emp.days[day]
-                                            }">
+                                                        'bg-green-100 text-green-700': emp.days[day] && emp.days[day].status === 'P',
+                                                        'bg-red-100 text-red-700': emp.days[day] && emp.days[day].status === 'A',
+                                                        'bg-yellow-100 text-yellow-700': emp.days[day] && (emp.days[day].status === 'L' || emp.days[day].status === 'HD'),
+                                                        'bg-blue-50 text-blue-600': emp.days[day] && emp.days[day].status === 'H',
+                                                        'bg-slate-50 text-slate-300': !emp.days[day]
+                                                    }">
                                         <span class="text-[9px] font-bold whitespace-nowrap"
                                             x-text="emp.days[day] ? emp.days[day].label : '-'">
                                         </span>
@@ -105,7 +118,8 @@
                 selectedMonth: '{{ $serverDate }}', // Initialize with server date
                 filters: {
                     company_id: '',
-                    location_id: ''
+                    location_id: '',
+                    search: ''
                 },
                 loading: false,
                 reportData: [],
@@ -125,6 +139,7 @@
                     let url = `/api/reports/monthly?month=${month}&year=${year}`;
                     if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
                     if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    if (this.filters.search) url += `&search=${this.filters.search}`;
 
                     fetch(url)
                         .then(res => res.json())
@@ -141,6 +156,7 @@
                     let url = `/reports/export/monthly?month=${month}&year=${year}`;
                     if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
                     if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    if (this.filters.search) url += `&search=${this.filters.search}`;
                     window.location.href = url;
                 }
             }
