@@ -76,11 +76,17 @@ function Send-Employees {
             
             $resp = Invoke-RestMethod -Uri $APEXV5_API_URL -Method POST -Headers @{ "Authorization" = "Bearer $APEXV5_API_TOKEN" } -Body $body -ContentType "application/json" -TimeoutSec 30
             
-            Write-Log "  Batch ${batchNum}: SUCCESS - $($resp.imported) Imported / $($resp.updated) Updated"
+            Write-Log "  Batch ${batchNum}: SUCCESS - $($resp.imported) Imported / $($resp.updated) Updated / $($resp.failed) Failed"
         }
         catch {
             Write-Log "  Batch ${batchNum}: ERROR - $_"
         }
+        
+        # DEBUG: Print sample of first batch to verify structure
+        if ($i -eq 0) {
+            Write-Log "  DEBUG PAYLOAD: $($batch[0] | ConvertTo-Json -Depth 2)"
+        }
+
         Start-Sleep -Milliseconds 500
     }
 }
