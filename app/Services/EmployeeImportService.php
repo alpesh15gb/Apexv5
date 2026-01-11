@@ -44,8 +44,8 @@ class EmployeeImportService
                 // 1. Resolve Department
                 // Ensure a default location exists
                 $location = \App\Models\Location::firstOrCreate(
-                    ['code' => 'HO'],
-                    ['name' => 'Head Office', 'address' => 'Main Address']
+                    ['code' => 'YLR'],
+                    ['name' => 'Yellareddy', 'address' => 'Yellareddy']
                 );
 
                 $department = Department::where('name', trim($deptName))->first();
