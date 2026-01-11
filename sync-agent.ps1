@@ -183,6 +183,7 @@ function Send-ToApexV5 {
         try {
             $body = @{
                 punches = $batch
+                token   = $APEXV5_API_TOKEN
             } | ConvertTo-Json -Depth 3
             
             $headers = @{
