@@ -14,68 +14,94 @@ class ReportService
      */
     public function getDailyReport($date, $filters = [])
     {
-        $date = Carbon::parse($date)->toDateString();
+        $dateStr = Carbon::parse($date)->toDateString();
+        $dateObj = Carbon::parse($date);
 
-        $query = DailyAttendance::with(['employee.department', 'employee.shift', 'shift', 'employee.leaves'])
-            ->where('date', $date);
+        // 1. Get Employees matching filters
+        $employeesQuery = Employee::with([
+            'department',
+            'shift',
+            'leaves' => function ($q) use ($dateStr) {
+                // Eager load only relevant leaves to optimize
+                $q->where('status', 'approved')
+                    ->whereDate('start_date', '<=', $dateStr)
+                    ->whereDate('end_date', '>=', $dateStr);
+            }
+        ])
+            ->where('is_active', true);
 
         if (!empty($filters['department_id'])) {
-            $query->whereHas('employee', function ($q) use ($filters) {
-                $q->where('department_id', $filters['department_id']);
-            });
+            $employeesQuery->where('department_id', $filters['department_id']);
         }
-
         if (!empty($filters['location_id'])) {
-            $query->whereHas('employee.department', function ($q) use ($filters) {
-                $q->where('location_id', $filters['location_id']);
-            });
+            $employeesQuery->whereHas('department', fn($q) => $q->where('location_id', $filters['location_id']));
         }
-
         if (!empty($filters['company_id'])) {
-            $query->whereHas('employee.department.location.branch', function ($q) use ($filters) {
-                $q->where('company_id', $filters['company_id']);
-            });
+            $employeesQuery->whereHas('department.location.branch', fn($q) => $q->where('company_id', $filters['company_id']));
         }
+        $employees = $employeesQuery->get();
 
-        if (!empty($filters['status'])) {
-            if ($filters['status'] === 'Late') {
-                $query->where('late_minutes', '>', 0);
+        // 2. Get Attendance for this date for these employees
+        $attendances = DailyAttendance::where('date', $dateStr)
+            ->whereIn('employee_id', $employees->pluck('id'))
+            ->get()
+            ->keyBy('employee_id');
+
+        // 3. Check for Holiday
+        $isHoliday = \App\Models\Holiday::where('date', $dateStr)->exists();
+
+        // 4. Merge and Map
+        $reportData = $employees->map(function ($employee) use ($attendances, $isHoliday, $dateStr, $dateObj) {
+            $record = $attendances->get($employee->id);
+
+            // If no record exists, create a dummy one
+            if (!$record) {
+                $record = new DailyAttendance();
+                $record->employee_id = $employee->id;
+                $record->date = $dateObj; // Use Carbon object as model expects cast
+                $record->status = 'Absent';
+                $record->late_minutes = 0;
+                // Manually set relation to avoid lazy load
+                $record->setRelation('employee', $employee);
+                $record->setRelation('shift', $employee->shift);
             } else {
-                $query->where('status', $filters['status']);
-            }
-        }
-
-        return $query->get()->map(function ($record) {
-            // Force datetime to string to avoid auto-conversion to UTC JSON (e.g. ...Z)
-            if ($record->in_time instanceof \DateTime) {
-                $record->in_time = $record->in_time->format('Y-m-d H:i:s');
-            }
-            if ($record->out_time instanceof \DateTime) {
-                $record->out_time = $record->out_time->format('Y-m-d H:i:s');
+                // Formatting time for JSON output
+                if ($record->in_time instanceof \DateTime)
+                    $record->in_time = $record->in_time->format('Y-m-d H:i:s');
+                if ($record->out_time instanceof \DateTime)
+                    $record->out_time = $record->out_time->format('Y-m-d H:i:s');
             }
 
-            // Check for approved leave if status is Absent
-            if ($record->status === 'Absent') {
-                // Check for Holiday first (Priority over Leave or Absent)
-                $isHoliday = \App\Models\Holiday::where('date', $record->date->format('Y-m-d'))->exists();
-                if ($isHoliday) {
+            // Status Overrides (Holiday / Leave) if Absent
+            if ($record->status === 'Absent' || $record->status === 'Half Day') { // Check leaves even for Half Day? Usually absent logic.
+                if ($record->status === 'Absent' && $isHoliday) {
                     $record->status = 'Holiday';
                 } else {
-                    $leave = $record->employee->leaves()
-                        ->where('status', 'approved')
-                        ->whereDate('start_date', '<=', $record->date)
-                        ->whereDate('end_date', '>=', $record->date)
-                        ->with('leaveType')
-                        ->first();
-
+                    // Check Eager Loaded Leaves
+                    $leave = $employee->leaves->first(); // We already filtered in eager load
                     if ($leave) {
                         $record->status = $leave->leaveType->code ?? 'Leave';
+                        // Attach leave type for frontend if needed
+                        // $leave->load('leaveType'); // Assume loaded or simple code
                     }
                 }
             }
 
             return $record;
         });
+
+        // 5. Apply Status Filters (Post-processing since we need to check generated status)
+        if (!empty($filters['status'])) {
+            $statusFilter = $filters['status'];
+            $reportData = $reportData->filter(function ($record) use ($statusFilter) {
+                if ($statusFilter === 'Late') {
+                    return $record->late_minutes > 0;
+                }
+                return $record->status === $statusFilter;
+            });
+        }
+
+        return $reportData->values(); // Reset keys
     }
 
     /**
