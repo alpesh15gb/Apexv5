@@ -131,7 +131,7 @@ Route::get('/debug/status', function () {
         ->get(['device_emp_code', 'punch_time']);
 
     // Inspect some random employees to see their code format
-    $employee_samples = \App\Models\Employee::inRandomOrder()->take(5)->get(['id', 'name', 'device_emp_code', 'card_number']);
+    $employee_samples = \App\Models\Employee::inRandomOrder()->take(5)->get(['id', 'name', 'device_emp_code']);
 
     return [
         'employees_total' => $employees,
