@@ -26,3 +26,4 @@ Route::get('/stats', [ReportController::class, 'dashboardStats']);
 use App\Http\Controllers\SyncController;
 Route::post('/punches/sync', [SyncController::class, 'store']);
 Route::post('/punches/import', [SyncController::class, 'store']);
+Route::post('/employees/sync', [SyncController::class, 'storeEmployees']);
