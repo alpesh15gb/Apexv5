@@ -118,13 +118,21 @@ Route::get('/debug/status', function () {
         ->whereNull('employee_id')->count();
     $attendance = \App\Models\DailyAttendance::where('date', '>=', now()->subDays(30))->count();
 
+    $attendance_by_date = \App\Models\DailyAttendance::selectRaw('date, count(*) as count')
+        ->where('date', '>=', now()->subDays(5))
+        ->groupBy('date')
+        ->orderBy('date', 'desc')
+        ->pluck('count', 'date');
+
     return [
         'employees_total' => $employees,
         'employees_without_shift' => $employees_no_shift,
         'recent_punches_total' => $punches,
         'punches_unlinked_to_employee' => $punches_null_emp,
         'attendance_records' => $attendance,
+        'attendance_by_date_last_5_days' => $attendance_by_date,
         'server_time' => now()->toDateTimeString(),
+        'server_timezone' => config('app.timezone'),
     ];
 });
 
