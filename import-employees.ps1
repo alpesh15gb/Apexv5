@@ -77,6 +77,12 @@ function Send-Employees {
             $resp = Invoke-RestMethod -Uri $APEXV5_API_URL -Method POST -Headers @{ "Authorization" = "Bearer $APEXV5_API_TOKEN" } -Body $body -ContentType "application/json" -TimeoutSec 30
             
             Write-Log "  Batch ${batchNum}: SUCCESS - $($resp.imported) Imported / $($resp.updated) Updated / $($resp.failed) Failed"
+            
+            if ($resp.errors) {
+                foreach ($err in $resp.errors) {
+                    Write-Log "    FAIL: $err"
+                }
+            }
         }
         catch {
             Write-Log "  Batch ${batchNum}: ERROR - $_"

@@ -22,6 +22,7 @@ class EmployeeImportService
         $imported = 0;
         $updated = 0;
         $failed = 0;
+        $errors = [];
 
         foreach ($employees as $data) {
             try {
@@ -30,11 +31,12 @@ class EmployeeImportService
 
                 $deviceEmpCode = $empData->device_emp_code ?? null;
                 $name = $empData->name ?? null;
-                $cardNo = $empData->card_no ?? null;
+                // Fix: Convert empty string to null to avoid Unique Constraint violation
+                $cardNo = !empty($empData->card_no) ? $empData->card_no : null;
                 $deptName = $empData->department ?? 'Imported';
 
                 if (!$deviceEmpCode || !$name) {
-                    Log::warning("Skipping invalid employee record: Missing Code or Name", (array) $data);
+                    $errors[] = "Missing Code/Name for: " . json_encode($data);
                     $failed++;
                     continue;
                 }
@@ -77,11 +79,14 @@ class EmployeeImportService
                 }
 
             } catch (\Exception $e) {
-                Log::error("Failed to import employee: " . $e->getMessage());
+                $msg = $e->getMessage();
+                Log::error("Failed to import employee {$name}: " . $msg);
+                $errors[] = "Error for {$name} ({$deviceEmpCode}): $msg";
                 $failed++;
             }
         }
 
-        return ['imported' => $imported, 'updated' => $updated, 'failed' => $failed];
+        // Return detailed stats including errors
+        return ['imported' => $imported, 'updated' => $updated, 'failed' => $failed, 'errors' => $errors];
     }
 }
