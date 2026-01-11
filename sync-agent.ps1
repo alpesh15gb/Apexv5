@@ -74,10 +74,10 @@ SELECT
     d.AttDirection,
     d.C1,
     d.WorkCode,
-    u.CardNo,
-    u.Badgenumber
+    u.EmployeeRFIDNumber as CardNo,
+    u.EmployeeCode as Badgenumber
 FROM $tableName d
-LEFT JOIN UserInfo u ON d.UserId = u.UserId
+LEFT JOIN Employees u ON d.UserId = u.EmployeeId
 WHERE d.LogDate >= @StartDate 
   AND d.LogDate <= @EndDate
 ORDER BY d.LogDate ASC
