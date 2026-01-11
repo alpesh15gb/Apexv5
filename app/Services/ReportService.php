@@ -42,7 +42,8 @@ class ReportService
         $employees = $employeesQuery->get();
 
         // 2. Get Attendance for this date for these employees
-        $attendances = DailyAttendance::where('date', $dateStr)
+        $attendances = DailyAttendance::with('shift') // Eager load Shift for existing records
+            ->where('date', $dateStr)
             ->whereIn('employee_id', $employees->pluck('id'))
             ->get()
             ->keyBy('employee_id');
@@ -62,7 +63,6 @@ class ReportService
                 $record->status = 'Absent';
                 $record->late_minutes = 0;
                 // Manually set relation to avoid lazy load
-                $record->setRelation('employee', $employee);
                 $record->setRelation('shift', $employee->shift);
             } else {
                 // Formatting time for JSON output
@@ -71,6 +71,9 @@ class ReportService
                 if ($record->out_time instanceof \DateTime)
                     $record->out_time = $record->out_time->format('Y-m-d H:i:s');
             }
+
+            // ALWAYS Attach Employee (Fixes "Unknown" and N+1)
+            $record->setRelation('employee', $employee);
 
             // Status Overrides (Holiday / Leave) if Absent
             if ($record->status === 'Absent' || $record->status === 'Half Day') { // Check leaves even for Half Day? Usually absent logic.
