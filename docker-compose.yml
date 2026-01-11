@@ -15,6 +15,8 @@ services:
       APP_KEY: ${APP_KEY}
       APP_DEBUG: ${APP_DEBUG:-true}
       APP_URL: ${APP_URL:-http://localhost}
+      APP_TIMEZONE: 'Asia/Kolkata'
+      TZ: 'Asia/Kolkata'
       DB_CONNECTION: mysql
       DB_HOST: db
       DB_PORT: 3306
