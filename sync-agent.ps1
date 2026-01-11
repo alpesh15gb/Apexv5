@@ -15,7 +15,7 @@ $APEXV5_API_TOKEN = "secret-token"
 
 # Sync settings
 $DAYS_TO_SYNC = 90
-$BATCH_SIZE = 20 # Reduced from 100 to prevent connection drops
+$BATCH_SIZE = 50 # Increased to 50 to reduce total request count
 
 # Security
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -189,7 +189,7 @@ function Send-ToApexV5 {
         catch {
             Write-Log "  Batch ${batchNum}: ERROR - $_"
         }
-        Start-Sleep -Milliseconds 200
+        Start-Sleep -Milliseconds 1000 # Increased wait to avoid Rate Limiting (429)
     }
 }
 #endregion
