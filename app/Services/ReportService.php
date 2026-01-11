@@ -25,6 +25,18 @@ class ReportService
             });
         }
 
+        if (!empty($filters['location_id'])) {
+            $query->whereHas('employee.department', function ($q) use ($filters) {
+                $q->where('location_id', $filters['location_id']);
+            });
+        }
+
+        if (!empty($filters['company_id'])) {
+            $query->whereHas('employee.department.location.branch', function ($q) use ($filters) {
+                $q->where('company_id', $filters['company_id']);
+            });
+        }
+
         if (!empty($filters['status'])) {
             if ($filters['status'] === 'Late') {
                 $query->where('late_minutes', '>', 0);
@@ -83,6 +95,18 @@ class ReportService
             });
         }
 
+        if (!empty($filters['location_id'])) {
+            $query->whereHas('employee.department', function ($q) use ($filters) {
+                $q->where('location_id', $filters['location_id']);
+            });
+        }
+
+        if (!empty($filters['company_id'])) {
+            $query->whereHas('employee.department.location.branch', function ($q) use ($filters) {
+                $q->where('company_id', $filters['company_id']);
+            });
+        }
+
         if (!empty($filters['employee_id'])) {
             $query->where('employee_id', $filters['employee_id']);
         }
@@ -113,6 +137,12 @@ class ReportService
             ->where('is_active', true) // Simplification for now
             ->when(!empty($filters['department_id']), function ($q) use ($filters) {
                 $q->where('department_id', $filters['department_id']);
+            })
+            ->when(!empty($filters['location_id']), function ($q) use ($filters) {
+                $q->whereHas('department', fn($q) => $q->where('location_id', $filters['location_id']));
+            })
+            ->when(!empty($filters['company_id']), function ($q) use ($filters) {
+                $q->whereHas('department.location.branch', fn($q) => $q->where('company_id', $filters['company_id']));
             })
             ->get();
 
