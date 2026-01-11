@@ -146,6 +146,15 @@ class PunchImportService
                 $number = preg_replace('/[^0-9]/', '', $deviceLogId);
                 $employee = Employee::where('device_emp_code', 'HO/' . $number)->first();
             }
+
+            // 4. Try Yellareddy Prefix (YLR) for numeric IDs
+            if (!$employee && is_numeric($deviceLogId)) {
+                $employee = Employee::where('device_emp_code', 'YLR' . $deviceLogId)->first();
+                // Try with zero-padding if failed (e.g. 96 -> YLR096)
+                if (!$employee) {
+                    $employee = Employee::where('device_emp_code', 'YLR' . str_pad($deviceLogId, 3, '0', STR_PAD_LEFT))->first();
+                }
+            }
         }
 
         // 4. AUTO-CREATE EMPLOYEE (If Name is Provided)
