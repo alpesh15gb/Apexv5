@@ -42,10 +42,20 @@ class EmployeeImportService
                 }
 
                 // 1. Resolve Department
-                // Ensure a default location exists
+                // Ensure dependencies exist (Company -> Branch -> Location)
+                $company = \App\Models\Company::firstOrCreate(
+                    ['code' => 'DEF-CO'],
+                    ['name' => 'Default Company']
+                );
+
+                $branch = \App\Models\Branch::firstOrCreate(
+                    ['code' => 'DEF-BR'],
+                    ['name' => 'Default Branch', 'company_id' => $company->id]
+                );
+
                 $location = \App\Models\Location::firstOrCreate(
                     ['code' => 'YLR'],
-                    ['name' => 'Yellareddy', 'address' => 'Yellareddy']
+                    ['name' => 'Yellareddy', 'address' => 'Yellareddy', 'branch_id' => $branch->id]
                 );
 
                 $department = Department::where('name', trim($deptName))->first();
