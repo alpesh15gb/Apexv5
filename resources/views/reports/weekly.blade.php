@@ -30,6 +30,19 @@
                 </select>
                 <div class="h-4 w-px bg-gray-300 mx-1"></div>
 
+                <!-- Search Input -->
+                <div class="relative">
+                    <input type="text" x-model.debounce.500ms="filters.search" @input="fetchData()"
+                        placeholder="Search Name/Code..." class="border-none focus:ring-0 text-gray-600 text-sm pl-8">
+                    <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="h-4 w-px bg-gray-300 mx-1"></div>
+
                 <input type="date" x-model="startDate" class="border-none focus:ring-0 text-sm">
                 <span class="text-gray-400">to</span>
                 <input type="date" x-model="endDate" class="border-none focus:ring-0 text-sm">
@@ -101,11 +114,11 @@
                                         <td class="px-2 py-2">
                                             <span class="px-2 inline-flex text-[10px] leading-4 font-semibold rounded-full"
                                                 :class="{
-                                                        'bg-green-100 text-green-800': record.status === 'Present',
-                                                        'bg-red-100 text-red-800': record.status === 'Absent',
-                                                        'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
-                                                        'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
-                                                    }" x-text="record.status">
+                                                            'bg-green-100 text-green-800': record.status === 'Present',
+                                                            'bg-red-100 text-red-800': record.status === 'Absent',
+                                                            'bg-yellow-100 text-yellow-800': record.status === 'Half Day' || record.status === 'Late',
+                                                            'bg-blue-100 text-blue-800': record.status === 'Holiday' || record.status === 'Leave'
+                                                        }" x-text="record.status">
                                             </span>
                                         </td>
                                     </tr>
@@ -129,7 +142,8 @@
                 endDate: '{{ $endDate }}',
                 filters: {
                     company_id: '',
-                    location_id: ''
+                    location_id: '',
+                    search: ''
                 },
                 loading: false,
                 groupedData: {},
@@ -138,6 +152,7 @@
                     let url = `/reports/detailed?start_date=${this.startDate}&end_date=${this.endDate}`;
                     if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
                     if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    if (this.filters.search) url += `&search=${this.filters.search}`;
 
                     fetch(url)
                         .then(res => res.json())
@@ -151,6 +166,7 @@
                     let url = `/reports/export/weekly?start_date=${this.startDate}&end_date=${this.endDate}`;
                     if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
                     if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
+                    if (this.filters.search) url += `&search=${this.filters.search}`;
                     window.location.href = url;
                 },
                 formatTime(datetime) {
