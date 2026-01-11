@@ -150,11 +150,19 @@ class PunchImportService
         }
 
         // 2. Prevent Duplicates
-        $exists = PunchLog::where('device_emp_code', $deviceLogId)
+        // 2. Prevent Duplicates OR Fix Mismatches
+        $existingLog = PunchLog::where('device_emp_code', $deviceLogId)
             ->where('punch_time', $punchTime)
-            ->exists();
+            ->first();
 
-        if (!$exists) {
+        if ($existingLog) {
+            // Retroactive Fix: If employee mapping has changed (e.g. strict vs fuzzy), update it.
+            $newEmpId = $employee ? $employee->id : null;
+            if ($existingLog->employee_id !== $newEmpId) {
+                $existingLog->update(['employee_id' => $newEmpId]);
+                Log::info("Corrected mapping for punch {$existingLog->id}: Old Emp {$existingLog->employee_id} -> New Emp {$newEmpId}");
+            }
+        } else {
             PunchLog::create([
                 'punch_time' => $punchTime,
                 'device_id' => $deviceId,
