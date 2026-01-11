@@ -141,10 +141,19 @@ class PunchImportService
 
             // Strict Mode: Removed fuzzy matching (stripping zeros, intval, etc.)
             // Only allow exact match on Legacy ID or standard HO/ prefix if explicitly needed.
-            if (!$employee && stripos($deviceLogId, 'HO') === 0 && strpos($deviceLogId, '/') === false) {
-                // Allow HO012 -> HO/012 conversion as it is a standard formatting issue
                 $number = preg_replace('/[^0-9]/', '', $deviceLogId);
                 $employee = Employee::where('device_emp_code', 'HO/' . $number)->first();
+            }
+
+            // 3b. Fallback for H-Zero (H0) typo -> HO
+            if (!$employee && stripos($deviceLogId, 'H0') === 0) {
+                 $number = preg_replace('/[^0-9]/', '', $deviceLogId);
+                 // Try HO/003
+                 $employee = Employee::where('device_emp_code', 'HO/' . $number)->first();
+                 if (!$employee) {
+                     // Try HO003 (no slash)
+                     $employee = Employee::where('device_emp_code', 'HO' . $number)->first();
+                 }
             }
 
             // 4. Try Yellareddy Prefix (YLR) for numeric IDs
