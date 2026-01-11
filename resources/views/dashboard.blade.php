@@ -125,6 +125,14 @@
         </div>
     </div>
 
+    <!-- Location Stats Grid -->
+    <div class="mt-8 mb-8" id="location-stats-container" style="display: none;">
+        <h4 class="text-lg font-bold text-slate-800 mb-6">Location Overview</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="location-cards">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             fetchStats();
@@ -149,6 +157,7 @@
                     renderDonutChart(data);
                     renderWeeklyChart(data.weekly_stats);
                     renderDeptChart(data.department_stats);
+                    renderLocationCards(data.location_stats);
                 })
                 .catch(error => console.error('Error fetching stats:', error));
         }
@@ -289,33 +298,75 @@
             }
 
             container.innerHTML = punches.map(punch => `
-                    <div class="flex items-start gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors">
-                        <div class="relative flex-shrink-0">
-                            ${punch.image
+                                <div class="flex items-start gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors">
+                                    <div class="relative flex-shrink-0">
+                                        ${punch.image
                     ? `<img src="${punch.image}" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm cursor-pointer hover:scale-110 transition-transform" onclick="window.open('${punch.image}', '_blank')">`
                     : `<div class="bg-slate-100 rounded-full w-12 h-12 flex items-center justify-center border-2 border-white shadow-sm">
-                                    <span class="text-slate-500 font-bold text-sm">${punch.emp_name.charAt(0)}</span>
-                                   </div>`
+                                                <span class="text-slate-500 font-bold text-sm">${punch.emp_name.charAt(0)}</span>
+                                               </div>`
                 }
-                            ${punch.is_mobile
+                                        ${punch.is_mobile
                     ? `<div class="absolute -bottom-1 -right-1 bg-blue-500 text-white p-1 rounded-full border-2 border-white" title="Mobile Punch">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                   </div>`
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                               </div>`
                     : ''
                 }
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <p class="text-sm font-bold text-slate-800 truncate">${punch.emp_name}</p>
+                                                <p class="text-xs text-slate-500 truncate font-mono">${punch.emp_code}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm font-bold text-slate-700 font-mono">${punch.time}</p>
+                                                 <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${punch.direction === 'IN' ? 'bg-green-100 text-green-700' : (punch.direction === 'OUT' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600')}">
+                                                    ${punch.direction}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+        }
+
+        function renderLocationCards(stats) {
+            const container = document.getElementById('location-cards');
+            const wrapper = document.getElementById('location-stats-container');
+
+            if (!stats || stats.length === 0) {
+                wrapper.style.display = 'none';
+                return;
+            }
+
+            wrapper.style.display = 'block';
+            container.innerHTML = stats.map(loc => `
+                    <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-800">${loc.name}</h4>
+                                <p class="text-slate-500 text-xs">Total Staff: <span class="font-bold text-slate-700">${loc.total}</span></p>
+                            </div>
+                            <div class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-xs font-bold">
+                                ${loc.percentage}% Present
+                            </div>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-sm font-bold text-slate-800 truncate">${punch.emp_name}</p>
-                                    <p class="text-xs text-slate-500 truncate font-mono">${punch.emp_code}</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-sm font-bold text-slate-700 font-mono">${punch.time}</p>
-                                     <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${punch.direction === 'IN' ? 'bg-green-100 text-green-700' : (punch.direction === 'OUT' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600')}">
-                                        ${punch.direction}
-                                    </span>
-                                </div>
+
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                             <div class="text-center p-3 bg-green-50 rounded-lg">
+                                <p class="text-green-600 text-xs font-bold uppercase">Present</p>
+                                <h5 class="text-xl font-bold text-green-700 mt-1">${loc.present}</h5>
+                            </div>
+                            <div class="text-center p-3 bg-red-50 rounded-lg">
+                                <p class="text-red-600 text-xs font-bold uppercase">Absent</p>
+                                <h5 class="text-xl font-bold text-red-700 mt-1">${loc.absent}</h5>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-4 border-t border-slate-50">
+                            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: ${loc.percentage}%"></div>
                             </div>
                         </div>
                     </div>

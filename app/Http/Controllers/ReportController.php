@@ -160,6 +160,7 @@ class ReportController extends Controller
         // Enhanced Stats via Service
         $weekly_stats = $this->reportService->getWeeklyStats();
         $department_stats = $this->reportService->getDepartmentStats();
+        $location_stats = $this->reportService->getLocationStats();
         $recent_punches = $this->reportService->getRecentPunches();
 
         return response()->json([
@@ -170,6 +171,7 @@ class ReportController extends Controller
             'total_staff' => $total_staff,
             'weekly_stats' => $weekly_stats,
             'department_stats' => $department_stats,
+            'location_stats' => $location_stats,
             'recent_punches' => $recent_punches
         ]);
     }

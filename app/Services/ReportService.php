@@ -739,6 +739,52 @@ class ReportService
     }
 
     /**
+     * Get Location Stats
+     */
+    public function getLocationStats()
+    {
+        $today = Carbon::today()->toDateString();
+
+        // Get all locations with employee count
+        $locations = \App\Models\Location::withCount([
+            'departments as employees_count' => function ($q) {
+                $q->join('employees', 'departments.id', '=', 'employees.department_id')
+                    ->where('employees.is_active', true);
+            }
+        ])->get();
+
+        // Get today's attendance grouped by location
+        // We need to join tables to filter by location
+        $attendance = DailyAttendance::whereDate('date', $today)
+            ->whereIn('status', ['Present', 'Half Day'])
+            ->whereHas('employee.department.location') // optimize
+            ->with('employee.department.location')
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->employee->department->location_id;
+            });
+
+        return $locations->map(function ($loc) use ($attendance) {
+            $present = $attendance->get($loc->id, collect())->count();
+
+            // Calculate Absent and Late
+            // Note: This is an approximation based on 'Present' count vs Total. 
+            // Real 'Absent' might need query, but for cards usually Present/Total is key.
+            // Let's get strict if needed. For now, Present % is main metric.
+
+            $percentage = $loc->employees_count > 0 ? round(($present / $loc->employees_count) * 100) : 0;
+
+            return [
+                'name' => $loc->name,
+                'total' => $loc->employees_count,
+                'present' => $present,
+                'absent' => $loc->employees_count - $present, // Simplification
+                'percentage' => $percentage
+            ];
+        })->values();
+    }
+
+    /**
      * Get Recent Punches (Live Feed)
      */
     public function getRecentPunches()
