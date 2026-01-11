@@ -130,12 +130,16 @@ Route::get('/debug/status', function () {
         ->take(5)
         ->get(['device_emp_code', 'punch_time']);
 
+    // Inspect some random employees to see their code format
+    $employee_samples = \App\Models\Employee::inRandomOrder()->take(5)->get(['id', 'name', 'device_emp_code', 'card_number']);
+
     return [
         'employees_total' => $employees,
         'employees_without_shift' => $employees_no_shift,
         'recent_punches_total' => $punches,
         'punches_unlinked_to_employee' => $punches_null_emp,
         'unlinked_samples' => $unlinked_samples,
+        'employee_samples' => $employee_samples,
         'attendance_records' => $attendance,
         'attendance_by_date_last_5_days' => $attendance_by_date,
         'server_time' => now()->toDateTimeString(),
