@@ -143,6 +143,32 @@ class PunchImportService
             }
         }
 
+        // 4. AUTO-CREATE EMPLOYEE (If Name is Provided)
+        if (!$employee && !empty($rawPunch->name)) {
+            $deptName = $rawPunch->department ?? 'Imported';
+
+            // Find or Create Department
+            $department = \App\Models\Department::firstOrCreate(
+                ['name' => $deptName],
+                ['description' => 'Auto-imported from Biometric Sync']
+            );
+
+            // Create Employee
+            try {
+                $employee = Employee::create([
+                    'name' => $rawPunch->name,
+                    'device_emp_code' => $empCode ?? $deviceLogId, // Use Badge if avail, else LogId
+                    'card_number' => $cardNo, // Can be null
+                    'department_id' => $department->id,
+                    'is_active' => true,
+                    'joining_date' => now(), // Default to today
+                ]);
+                Log::info("Auto-Created Employee: {$employee->name} ({$employee->device_emp_code})");
+            } catch (\Exception $e) {
+                Log::error("Failed to auto-create employee {$rawPunch->name}: " . $e->getMessage());
+            }
+        }
+
         // 4. Auto-populate Card Number if found (Self-Healing)
         if ($employee && $cardNo && $employee->card_number !== $cardNo) {
             $employee->update(['card_number' => $cardNo]);
