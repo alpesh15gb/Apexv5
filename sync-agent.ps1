@@ -1,4 +1,229 @@
-# ApexV5 Local Sync Agent
+# ApexV5 Local Sync Agent (HikCentral Mode)
+# Syncs HikvisionLogs from on-premise MSSQL to ApexV5 Server
+# Run this script on your on-premise Windows machine with SQL Server access
+
+#region Configuration
+$MSSQL_SERVER = "localhost"  # Change to your SQL Server address
+$MSSQL_DATABASE = "hikcentral" # UPDATED: Database Name
+$MSSQL_USERNAME = "essl"
+$MSSQL_PASSWORD = "Keystone@456"
+
+$APEXV5_API_URL = "https://ho.apextime.in/api/punches/import"  # Your ApexV5 server URL
+$APEXV5_API_TOKEN = "secret-token"  # Use value from .env SYNC_API_TOKEN
+
+# Sync settings
+$DAYS_TO_SYNC = 90  # Sync last 90 days of data
+$BATCH_SIZE = 100  # Batch size
+
+# Force TLS 1.2 (Required for modern servers)
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# Disable Expect: 100-continue (Fixes "Connection closed" errors)
+[System.Net.ServicePointManager]::Expect100Continue = $false
+#endregion
+
+#region Functions
+function Write-Log {
+    param($Message)
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Write-Host "[$timestamp] $Message"
+}
+
+function Get-HikLogs {
+    param(
+        [DateTime]$StartDate,
+        [DateTime]$EndDate
+    )
+    
+    $connectionString = "Server=$MSSQL_SERVER;Database=$MSSQL_DATABASE;User Id=$MSSQL_USERNAME;Password=$MSSQL_PASSWORD;TrustServerCertificate=True;"
+    
+    try {
+        $connection = New-Object System.Data.SqlClient.SqlConnection($connectionString)
+        $connection.Open()
+        
+        Write-Log "Connected to MSSQL: $MSSQL_SERVER ($MSSQL_DATABASE)"
+        
+        $allLogs = @()
+        
+        # Check if table exists
+        $tableName = "HikvisionLogs"
+        $checkQuery = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '$tableName'"
+        $checkCmd = New-Object System.Data.SqlClient.SqlCommand($checkQuery, $connection)
+        $tableExists = $checkCmd.ExecuteScalar()
+        
+        if ($tableExists -gt 0) {
+            Write-Log "Querying table: $tableName"
+            
+            $query = @"
+SELECT 
+    LogId,
+    person_id,
+    access_datetime,
+    direction,
+    card_no,
+    device_name
+FROM $tableName
+WHERE access_datetime >= @StartDate 
+  AND access_datetime <= @EndDate
+ORDER BY access_datetime ASC
+"@
+            
+            $cmd = New-Object System.Data.SqlClient.SqlCommand($query, $connection)
+            $cmd.Parameters.AddWithValue("@StartDate", $StartDate) | Out-Null
+            $cmd.Parameters.AddWithValue("@EndDate", $EndDate) | Out-Null
+            
+            $reader = $cmd.ExecuteReader()
+            
+            while ($reader.Read()) {
+                $allLogs += [PSCustomObject]@{
+                    LogId     = $reader["LogId"]
+                    UserId    = $reader["person_id"]
+                    LogDate   = $reader["access_datetime"]
+                    Direction = $reader["direction"]
+                    CardNo    = $reader["card_no"]
+                    DeviceId  = $reader["device_name"]
+                }
+            }
+            
+            $reader.Close()
+            Write-Log "  Found $($allLogs.Count) records in $tableName"
+            
+            $uniqueUserIds = $allLogs | Select-Object -ExpandProperty UserId -Unique
+            Write-Log "  Unique User IDs found: $($uniqueUserIds -join ', ')"
+        }
+        else {
+            Write-Log "  Table $tableName NOT FOUND in $MSSQL_DATABASE"
+        }
+        
+        $connection.Close()
+        Write-Log "Total records retrieved: $($allLogs.Count)"
+        
+        return $allLogs
+    }
+    catch {
+        Write-Log "ERROR querying MSSQL: $_"
+        return @()
+    }
+}
+
+function Convert-ToPunchData {
+    param($DeviceLogs)
+    
+    $punches = @()
+    
+    foreach ($log in $DeviceLogs) {
+        # Determine punch direction (in/out)
+        $direction = "in"
+        # Check explicit direction from HikCentral (Enter/Exit)
+        if ($log.Direction -match "Exit" -or $log.Direction -match "Out") {
+            $direction = "out"
+        }
+        
+        # Handle cases where null or empty
+        $cardNo = if ($log.CardNo) { $log.CardNo.ToString() } else { "" }
+        $empCode = if ($log.UserId) { $log.UserId.ToString() } else { "" }
+        $logDate = if ($log.LogDate) { $log.LogDate.ToString("yyyy-MM-dd HH:mm:ss") } else { (Get-Date).ToString("yyyy-MM-dd HH:mm:ss") }
+
+        $punches += @{
+            device_emp_code = $empCode
+            punch_time      = $logDate
+            type            = $direction
+            device_id       = [string]$log.DeviceId
+            card_no         = $cardNo
+            emp_code        = $empCode # Map Person ID to Employee Code
+        }
+    }
+    
+    return $punches
+}
+
+function Send-ToApexV5 {
+    param($Punches)
+    
+    if ($Punches.Count -eq 0) {
+        Write-Log "No punches to send"
+        return $true
+    }
+    
+    Write-Log "Sending $($Punches.Count) punches to ApexV5..."
+    
+    # Split into batches
+    $batches = @()
+    for ($i = 0; $i -lt $Punches.Count; $i += $BATCH_SIZE) {
+        $end = [Math]::Min($i + $BATCH_SIZE - 1, $Punches.Count - 1)
+        $batches += , @($Punches[$i..$end])
+    }
+    
+    Write-Log "Split into $($batches.Count) batches of max $BATCH_SIZE records"
+    
+    $successCount = 0
+    $failCount = 0
+    
+    for ($b = 0; $b -lt $batches.Count; $b++) {
+        $batch = $batches[$b]
+        $batchNum = $b + 1
+        
+        Write-Log "Sending batch $batchNum/$($batches.Count) ($($batch.Count) records)..."
+        
+        try {
+            $body = @{
+                punches = $batch
+                token   = $APEXV5_API_TOKEN
+            } | ConvertTo-Json -Depth 3
+            
+            $headers = @{
+                "Content-Type" = "application/json"
+            }
+            
+            if ($APEXV5_API_TOKEN) {
+                $headers["Authorization"] = "Bearer $APEXV5_API_TOKEN"
+            }
+            
+            $response = Invoke-RestMethod -Uri $APEXV5_API_URL -Method POST -Headers $headers -Body $body -TimeoutSec 30
+            
+            Write-Log "  Batch ${batchNum}: SUCCESS - $($response.imported) imported, $($response.failed) failed"
+            $successCount += $response.imported
+            $failCount += $response.failed
+        }
+        catch {
+            Write-Log "  Batch ${batchNum}: ERROR - $_"
+            $failCount += $batch.Count
+        }
+        
+        # Small delay between batches
+        Start-Sleep -Milliseconds 500
+    }
+    
+    Write-Log "SYNC COMPLETE: $successCount imported, $failCount failed"
+    return $true
+}
+#endregion
+
+#region Main Execution
+Write-Log "=== ApexV5 Local Sync Agent (HikCentral Mode) Started ==="
+Write-Log "Server: $APEXV5_API_URL"
+Write-Log "Days to sync: $DAYS_TO_SYNC"
+
+$endDate = Get-Date
+$startDate = $endDate.AddDays(-$DAYS_TO_SYNC)
+
+Write-Log "Date range: $($startDate.ToString('yyyy-MM-dd')) to $($endDate.ToString('yyyy-MM-dd'))"
+
+# Step 1: Get data from MSSQL (HikCentral)
+$deviceLogs = Get-HikLogs -StartDate $startDate -EndDate $endDate
+
+if ($deviceLogs.Count -eq 0) {
+    Write-Log "No data to sync. Exiting."
+    exit 0
+}
+
+# Step 2: Convert to ApexV5 format
+$punches = Convert-ToPunchData -DeviceLogs $deviceLogs
+
+# Step 3: Send to API
+$result = Send-ToApexV5 -Punches $punches
+
+Write-Log "=== Sync Agent Finished ==="
+#endregion
 # Syncs DeviceLogs from on-premise MSSQL to ApexV5 Server
 # Run this script on your on-premise Windows machine with SQL Server access
 
