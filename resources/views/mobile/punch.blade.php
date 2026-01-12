@@ -68,10 +68,10 @@
         <div class="mt-6 border-t border-stone-800 pt-4 text-center">
             @if($attendance && $attendance->in_time)
                 <div class="text-sm text-stone-300">
-                    <span class="text-green-400">In:</span> {{ $attendance->in_time->format('H:i') }}
+                    <span class="text-green-400">In:</span> {{ \Carbon\Carbon::parse($attendance->in_time)->format('H:i') }}
                     <span class="mx-2 text-stone-600">|</span>
                     <span class="text-red-400">Out:</span>
-                    {{ $attendance->out_time ? $attendance->out_time->format('H:i') : '--:--' }}
+                    {{ $attendance->out_time ? \Carbon\Carbon::parse($attendance->out_time)->format('H:i') : '--:--' }}
                 </div>
             @else
                 <p class="text-xs text-stone-500 uppercase tracking-widest">No Attendance Today</p>
