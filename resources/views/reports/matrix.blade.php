@@ -160,6 +160,10 @@
         </div>
     </div>
 
+    <div x-show="loadingMore" class="text-center py-2 text-xs text-slate-400">
+        Loading other locations...
+    </div>
+
     <script>
         function matrixReport() {
             return {
@@ -170,7 +174,9 @@
                     location_id: ''
                 },
                 loading: false,
+                loadingMore: false,
                 reportData: [],
+                locations: @json($locations),
                 metricsList: [
                     { key: 'status', label: 'Status' },
                     { key: 'in_time', label: 'In Time' },
@@ -181,11 +187,20 @@
                     { key: 'ot', label: 'OT' },
                 ],
                 get daysInMonth() {
-                    // Return array 1..daysInMonth
                     return Array.from({ length: new Date(this.year, this.month, 0).getDate() }, (_, i) => i + 1);
                 },
                 fetchData() {
+                    // If specific filters are set, do a standard single fetch
+                    if (this.filters.company_id || this.filters.location_id) {
+                        this.fetchSingle();
+                        return;
+                    }
+                    // Otherwise, sequential load for performance
+                    this.fetchSequentially();
+                },
+                fetchSingle() {
                     this.loading = true;
+                    this.reportData = [];
                     let url = `/reports/matrix-data?month=${this.month}&year=${this.year}`;
                     if (this.filters.company_id) url += `&company_id=${this.filters.company_id}`;
                     if (this.filters.location_id) url += `&location_id=${this.filters.location_id}`;
@@ -197,6 +212,56 @@
                         })
                         .catch(err => console.error(err))
                         .finally(() => this.loading = false);
+                },
+                async fetchSequentially() {
+                    this.loading = true;
+                    this.reportData = [];
+                    this.loadingMore = true;
+
+                    // Sort locations: HO first, then YLR, then others
+                    let sortedLocs = [...this.locations].sort((a, b) => {
+                        const nameA = a.name.toLowerCase();
+                        const nameB = b.name.toLowerCase();
+
+                        // Priority 1: HO / Head Office
+                        const isHoA = nameA.includes('ho') || nameA.includes('head office');
+                        const isHoB = nameB.includes('ho') || nameB.includes('head office');
+                        if (isHoA && !isHoB) return -1;
+                        if (!isHoA && isHoB) return 1;
+
+                        // Priority 2: YLR
+                        const isYlrA = nameA.includes('ylr');
+                        const isYlrB = nameB.includes('ylr');
+                        if (isYlrA && !isYlrB) return -1;
+                        if (!isYlrA && isYlrB) return 1;
+
+                        return 0;
+                    });
+
+                    // Fetch First Batch (likely HO)
+                    if (sortedLocs.length > 0) {
+                        await this.fetchLocationBatch(sortedLocs[0].id);
+                    }
+
+                    // Unblock UI
+                    this.loading = false;
+
+                    // Fetch Rest in background
+                    for (let i = 1; i < sortedLocs.length; i++) {
+                        await this.fetchLocationBatch(sortedLocs[i].id);
+                    }
+                    this.loadingMore = false;
+                },
+                async fetchLocationBatch(locId) {
+                    let url = `/reports/matrix-data?month=${this.month}&year=${this.year}&location_id=${locId}`;
+                    try {
+                        let res = await fetch(url);
+                        let json = await res.json();
+                        // Append data
+                        if (json.data && json.data.length > 0) {
+                            this.reportData.push(...json.data);
+                        }
+                    } catch (e) { console.error('Error loading location batch', e); }
                 },
                 exportData() {
                     let url = `/reports/export/matrix?month=${this.month}&year=${this.year}`;

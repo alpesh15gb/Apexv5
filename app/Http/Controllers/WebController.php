@@ -6,6 +6,7 @@ use App\Services\ReportService;
 use App\Models\Company;
 use App\Models\Location;
 use App\Models\Department;
+use Illuminate\Http\Request;
 
 class WebController extends Controller
 {

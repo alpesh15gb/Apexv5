@@ -127,7 +127,17 @@ ORDER BY access_datetime ASC
             while ($reader.Read()) {
                 # Normalize Direction
                 $dir = "in"
-                if ($reader["direction"] -match "Exit" -or $reader["direction"] -match "Out") { $dir = "out" }
+                $rawDir = $reader["direction"]
+                
+                if ($rawDir -match "Exit" -or $rawDir -match "Out") { 
+                    $dir = "out" 
+                }
+                elseif ([string]::IsNullOrWhiteSpace($rawDir)) {
+                    # Infer from time if direction is missing
+                    if ($reader["access_datetime"].Hour -ge 14) { 
+                        $dir = "out" 
+                    }
+                }
 
                 $allLogs += [PSCustomObject]@{
                     Source    = "Hik"
