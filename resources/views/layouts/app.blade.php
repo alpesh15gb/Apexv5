@@ -61,7 +61,7 @@
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-            class="absolute inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transition-transform duration-300 ease-in-out md:relative md:translate-x-0">
+            class="absolute inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transition-transform duration-300 ease-in-out md:relative md:translate-x-0 overflow-y-auto">
             <div class="p-6">
                 <h1 class="text-2xl font-bold tracking-wider">ApexV5</h1>
                 <p class="text-sm text-slate-400 mt-1">HRMS & Attendance</p>
