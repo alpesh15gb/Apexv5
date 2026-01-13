@@ -149,7 +149,20 @@ class PunchImportService
             // Fuzzy Failover: Try matching by integer value (handles 001 vs 1)
             if (!$employee && is_numeric($deviceLogId)) {
                 $intVal = (int) $deviceLogId;
+                // 1. Try exact integer string (e.g. '5')
                 $employee = Employee::where('device_emp_code', (string) $intVal)->first();
+
+                // 2. Try 4-digit zero padded (e.g. '0005')
+                if (!$employee) {
+                    $padded = str_pad($intVal, 4, '0', STR_PAD_LEFT);
+                    $employee = Employee::where('device_emp_code', $padded)->first();
+                }
+
+                // 3. Try HO/ + 3-digit padded (e.g. 'HO/005') - Common pattern
+                if (!$employee) {
+                    $hoPadded = 'HO/' . str_pad($intVal, 3, '0', STR_PAD_LEFT);
+                    $employee = Employee::where('device_emp_code', $hoPadded)->first();
+                }
             }
         }
 
