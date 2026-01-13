@@ -72,10 +72,10 @@ class ReportService
                 $record->setRelation('shift', $employee->shift);
             } else {
                 // Formatting time for JSON output
-                if ($record->in_time instanceof \DateTime)
-                    $record->in_time = $record->in_time->format('Y-m-d H:i:s');
-                if ($record->out_time instanceof \DateTime)
-                    $record->out_time = $record->out_time->format('Y-m-d H:i:s');
+                if ($record->in_time)
+                    $record->in_time = \Carbon\Carbon::parse($record->in_time)->format('Y-m-d H:i:s');
+                if ($record->out_time)
+                    $record->out_time = \Carbon\Carbon::parse($record->out_time)->format('Y-m-d H:i:s');
             }
 
             // ALWAYS Attach Employee (Fixes "Unknown" and N+1)
@@ -161,11 +161,11 @@ class ReportService
         }
 
         $data = $query->orderBy('date', 'asc')->get()->map(function ($record) {
-            if ($record->in_time instanceof \DateTime) {
-                $record->in_time = $record->in_time->format('Y-m-d H:i:s');
+            if ($record->in_time) {
+                $record->in_time = \Carbon\Carbon::parse($record->in_time)->format('Y-m-d H:i:s');
             }
-            if ($record->out_time instanceof \DateTime) {
-                $record->out_time = $record->out_time->format('Y-m-d H:i:s');
+            if ($record->out_time) {
+                $record->out_time = \Carbon\Carbon::parse($record->out_time)->format('Y-m-d H:i:s');
             }
             return $record;
         });
@@ -273,8 +273,8 @@ class ReportService
                 $label = $shortStatus;
                 if ($status === 'Present' || $status === 'Half Day') {
                     if ($record && $record->in_time) {
-                        $in = $record->in_time->format('H:i');
-                        $out = $record->out_time ? $record->out_time->format('H:i') : 'Missing';
+                        $in = \Carbon\Carbon::parse($record->in_time)->format('H:i');
+                        $out = $record->out_time ? \Carbon\Carbon::parse($record->out_time)->format('H:i') : 'Missing';
                         $label = "$in - $out";
                     }
                 }
@@ -417,9 +417,9 @@ class ReportService
                     }
 
                     if ($record->in_time)
-                        $metrics['in_time'] = $record->in_time->format('H:i');
+                        $metrics['in_time'] = \Carbon\Carbon::parse($record->in_time)->format('H:i');
                     if ($record->out_time)
-                        $metrics['out_time'] = $record->out_time->format('H:i');
+                        $metrics['out_time'] = \Carbon\Carbon::parse($record->out_time)->format('H:i');
 
                     // Duration (Total Hours is likely in hours or minutes? Default 0. Migration says decimal 8,2. Usually hours.)
                     // Let's assume calculated total_hours is hours. Let's convert to H:i
@@ -590,8 +590,8 @@ class ReportService
                         $record->date->format('Y-m-d'),
                         $record->date->format('l'),
                         $record->shift->name ?? '-',
-                        $record->in_time ? $record->in_time->format('H:i') : '-',
-                        $record->out_time ? $record->out_time->format('H:i') : '-',
+                        $record->in_time ? \Carbon\Carbon::parse($record->in_time)->format('H:i') : '-',
+                        $record->out_time ? \Carbon\Carbon::parse($record->out_time)->format('H:i') : '-',
                         $record->late_minutes,
                         $record->status
                     ]);
@@ -619,8 +619,8 @@ class ReportService
                     $record->employee->name ?? '-',
                     $record->employee->department->name ?? '-',
                     $record->shift->name ?? '-',
-                    $record->in_time ? $record->in_time->format('H:i') : '-',
-                    $record->out_time ? $record->out_time->format('H:i') : '-',
+                    $record->in_time ? \Carbon\Carbon::parse($record->in_time)->format('H:i') : '-',
+                    $record->out_time ? \Carbon\Carbon::parse($record->out_time)->format('H:i') : '-',
                     $record->late_minutes,
                     $record->status
                 ]);
@@ -804,7 +804,10 @@ class ReportService
                 $image = null;
 
                 // Simple logic: if out_time is set and close to updated_at, it's OUT, else IN
-                if ($record->out_time && $record->updated_at->diffInMinutes($record->out_time) < 5) {
+                // Safe parsing for calculations
+                $outTime = $record->out_time ? \Carbon\Carbon::parse($record->out_time) : null;
+
+                if ($outTime && $record->updated_at->diffInMinutes($outTime) < 5) {
                     $direction = 'OUT';
                     $image = $record->out_image;
                 } elseif ($record->in_time) {
