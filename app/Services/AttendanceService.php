@@ -67,6 +67,8 @@ class AttendanceService
         $inTime = $filteredPunches->first()?->punch_time;
         $outTime = $filteredPunches->count() > 1 ? $filteredPunches->last()?->punch_time : null;
 
+        Log::info("Employee {$employee->id}: Found " . $filteredPunches->count() . " valid punches. In: " . ($inTime ? $inTime->toTimeString() : 'N/A'));
+
         // 4. Calculate Hours
         $totalHours = 0;
         $status = 'Absent';
@@ -105,13 +107,14 @@ class AttendanceService
             ],
             [
                 'shift_id' => $shift->id,
-                'in_time' => $inTime,
-                'out_time' => $outTime,
+                // Explicitly format as string to match database/model expectation
+                'in_time' => $inTime ? $inTime->format('Y-m-d H:i:s') : null,
+                'out_time' => $outTime ? $outTime->format('Y-m-d H:i:s') : null,
                 'total_hours' => $totalHours,
                 'late_minutes' => $lateMinutes,
                 'early_leaving_minutes' => $earlyMinutes,
                 'status' => $status,
-                'is_finalized' => false // Can be finalized by admin or end of month
+                'is_finalized' => false
             ]
         );
     }
