@@ -145,6 +145,12 @@ class PunchImportService
                 $number = preg_replace('/[^0-9]/', '', $deviceLogId);
                 $employee = Employee::where('device_emp_code', 'HO/' . $number)->first();
             }
+
+            // Fuzzy Failover: Try matching by integer value (handles 001 vs 1)
+            if (!$employee && is_numeric($deviceLogId)) {
+                $intVal = (int) $deviceLogId;
+                $employee = Employee::where('device_emp_code', (string) $intVal)->first();
+            }
         }
 
         // 4. AUTO-CREATE EMPLOYEE (If Name is Provided)
@@ -205,5 +211,34 @@ class PunchImportService
                 'is_processed' => false,
             ]);
         }
+    }
+    /**
+     * Relink unmapped punches
+     */
+    public function relinkUnmappedLogs()
+    {
+        $punches = PunchLog::whereNull('employee_id')->orderBy('id', 'desc')->take(2000)->get();
+        $count = 0;
+
+        foreach ($punches as $punch) {
+            // Re-run process logic to find employee
+            // We construct a mock raw object
+            $raw = (object) [
+                'device_emp_code' => $punch->device_emp_code,
+                'punch_time' => $punch->punch_time,
+                'device_id' => $punch->device_id,
+                'type' => $punch->type,
+            ];
+
+            Log::info("Attempting to relink log #" . $punch->id . " (Code: " . $punch->device_emp_code . ")");
+            $this->processPunch($raw);
+
+            // Check if linked
+            if ($punch->refresh()->employee_id) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 }

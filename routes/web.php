@@ -110,6 +110,17 @@ Route::get('/debug/recalculate', function () {
     return "Recalculation triggered for last 30 days.";
 });
 
+Route::get('/debug/relink', function () {
+    $service = app(\App\Services\PunchImportService::class);
+    $count = $service->relinkUnmappedLogs();
+
+    // Also trigger recalc for last 3 days
+    $attService = app(\App\Services\AttendanceService::class);
+    $attService->calculateDailyAttendance(now()->toDateString());
+
+    return "Relinked $count punches. Triggered attendance recalc for today.";
+});
+
 Route::get('/debug/status', function () {
     $employees = \App\Models\Employee::count();
     $employees_no_shift = \App\Models\Employee::whereNull('shift_id')->count();
@@ -127,8 +138,14 @@ Route::get('/debug/status', function () {
     // Inspect unlinked punches
     $unlinked_samples = \App\Models\PunchLog::whereNull('employee_id')
         ->where('punch_time', '>=', now()->subDays(2))
-        ->take(5)
-        ->get(['device_emp_code', 'punch_time']);
+        ->take(10)
+        ->get(['id', 'device_emp_code', 'punch_time'])
+        ->map(function ($p) {
+            // Check what fuzzy matching would find
+            $match = \App\Models\Employee::where('device_emp_code', (int) $p->device_emp_code)->first();
+            $p->fuzzy_match_test = $match ? "Would Match: {$match->name} ({$match->device_emp_code})" : "No Match";
+            return $p;
+        });
 
     // Inspect some random employees to see their code format
     $employee_samples = \App\Models\Employee::inRandomOrder()->take(5)->get(['id', 'name', 'device_emp_code']);
@@ -138,7 +155,7 @@ Route::get('/debug/status', function () {
         'employees_without_shift' => $employees_no_shift,
         'recent_punches_total' => $punches,
         'punches_unlinked_to_employee' => $punches_null_emp,
-        'unlinked_samples' => $unlinked_samples,
+        'unlinked_samples_test' => $unlinked_samples,
         'employee_samples' => $employee_samples,
         'attendance_records' => $attendance,
         'attendance_by_date_last_5_days' => $attendance_by_date,
