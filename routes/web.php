@@ -121,6 +121,16 @@ Route::get('/debug/relink', function () {
     return "Relinked $count punches. Triggered attendance recalc for today.";
 });
 
+Route::get('/debug/force-sync', function () {
+    $service = app(\App\Services\PunchImportService::class);
+    $startDate = now()->subDays(30);
+
+    // Force import skipping incremental check
+    $service->importPunches($startDate);
+
+    return "Force imported punches from " . $startDate->toDateString() . ". Attendance recalculation triggered automatically.";
+});
+
 Route::get('/debug/status', function () {
     $employees = \App\Models\Employee::count();
     $employees_no_shift = \App\Models\Employee::whereNull('shift_id')->count();

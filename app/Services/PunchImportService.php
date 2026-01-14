@@ -27,33 +27,66 @@ class PunchImportService
      * 
      * @return int Number of records imported
      */
-    public function importPunches()
+    public function importPunches($forceStartTime = null)
     {
         Log::info('Starting punch import from MSSQL...');
 
-        // Get last imported punch time to allow incremental sync
+        // Get last imported punch time
         $lastPunch = PunchLog::orderBy('punch_time', 'desc')->first();
-        $startTime = $lastPunch ? $lastPunch->punch_time : Carbon::now()->subDays(30); // Default to last 30 days if empty
+        if ($forceStartTime) {
+            $startTime = Carbon::parse($forceStartTime);
+            Log::info("Force import started from: " . $startTime->toDateTimeString());
+        } else {
+            $startTime = $lastPunch ? $lastPunch->punch_time : Carbon::now()->subDays(30);
+        }
 
         $affectedDates = [];
 
         try {
-            // Fetch raw logs from MSSQL
-            // Assuming table name 'DeviceLogs_Processed' or similar based on Etimetracklite schema
-            // We select columns relevant to our schema
-            $rawPunches = DB::connection('sqlsrv')
-                ->table('DeviceLogs_Processed') // Adjust table name if needed
-                ->where('LogDate', '>', $startTime)
-                ->orderBy('LogDate', 'asc')
-                ->chunk(500, function ($punches) use (&$affectedDates) {
-                    foreach ($punches as $punch) {
-                        $this->processPunch($punch);
-                        $date = Carbon::parse($punch->LogDate)->toDateString();
-                        $affectedDates[$date] = true;
-                    }
-                });
+            // SOURCE 1: Etimetracklite1 (Dynamic Tables)
+            $currentMonthTable = 'DeviceLogs_' . Carbon::now()->month . '_' . Carbon::now()->year;
+            $prevMonthTable = 'DeviceLogs_' . Carbon::now()->subMonth()->month . '_' . Carbon::now()->subMonth()->year;
 
-            // Recalculate attendance for affected dates
+            $tables = [$currentMonthTable, $prevMonthTable];
+
+            foreach ($tables as $tableName) {
+                // check availability via raw query to avoid errors if table missing
+                $tableExists = DB::connection('sqlsrv')->select("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?", [$tableName]);
+
+                if (!empty($tableExists)) {
+                    Log::info("Fetching from Etime table: $tableName");
+                    DB::connection('sqlsrv')->table($tableName)
+                        ->where('LogDate', '>', $startTime)
+                        ->orderBy('LogDate', 'asc')
+                        ->chunk(500, function ($punches) use (&$affectedDates) {
+                            foreach ($punches as $punch) {
+                                $this->processPunch($punch);
+                                $date = Carbon::parse($punch->LogDate)->toDateString();
+                                $affectedDates[$date] = true;
+                            }
+                        });
+                }
+            }
+
+            // SOURCE 2: HikCentral (HikvisionLogs) - Keep as secondary
+            // The user said Gurgaon is in Etime, but HO might be here.
+            try {
+                DB::connection('sqlsrv')
+                    ->table(DB::raw('hikcentral.dbo.HikvisionLogs'))
+                    ->where('access_datetime', '>', $startTime)
+                    ->orderBy('access_datetime', 'asc')
+                    ->chunk(500, function ($punches) use (&$affectedDates) {
+                        foreach ($punches as $punch) {
+                            $this->processPunch($punch);
+                            $date = Carbon::parse($punch->access_datetime)->toDateString();
+                            $affectedDates[$date] = true;
+                        }
+                    });
+            } catch (\Exception $e) {
+                Log::warning("HikvisionLogs fetch failed: " . $e->getMessage());
+            }
+
+            // Recalculate attendance
             foreach (array_keys($affectedDates) as $date) {
                 $this->attendanceService->calculateDailyAttendance($date);
             }
@@ -110,14 +143,22 @@ class PunchImportService
 
     protected function processPunch($rawPunch)
     {
-        // Handle both API (snake_case) and DB Raw (PascalCase) formats
-        $deviceLogId = $rawPunch->device_emp_code ?? $rawPunch->UserId;
-        $punchTime = $rawPunch->punch_time ?? $rawPunch->LogDate;
-        $deviceId = $rawPunch->device_id ?? $rawPunch->DeviceId;
-        $direction = $rawPunch->type ?? 'NA'; // Default if missing
+        // Handle both API (snake_case) and DB Raw (PascalCase) and Hikvision formats
+        // Hikvision: person_id, access_datetime, direction
+        // Etimetrack: UserId, LogDate, Direction
+
+        $deviceLogId = $rawPunch->device_emp_code ?? $rawPunch->person_id ?? $rawPunch->UserId;
+        $punchTime = $rawPunch->punch_time ?? $rawPunch->access_datetime ?? $rawPunch->LogDate;
+        $deviceId = $rawPunch->device_id ?? $rawPunch->DeviceId ?? $rawPunch->device_name ?? 'Unknown';
+        $direction = $rawPunch->type ?? $rawPunch->direction ?? 'NA';
 
         $cardNo = $rawPunch->card_no ?? $rawPunch->CardNo ?? null;
         $empCode = $rawPunch->emp_code ?? $rawPunch->Badgenumber ?? null;
+
+        // If person_id is present (HikCentral), use it as empCode too if not explicitly provided
+        if (!$empCode && isset($rawPunch->person_id)) {
+            $empCode = $rawPunch->person_id;
+        }
 
         $employee = null;
 
@@ -162,6 +203,17 @@ class PunchImportService
                 if (!$employee) {
                     $hoPadded = 'HO/' . str_pad($intVal, 3, '0', STR_PAD_LEFT);
                     $employee = Employee::where('device_emp_code', $hoPadded)->first();
+                }
+
+                // 4. Try GG/ + 3-digit padded (Gurgaon) or Just GG/ + Int
+                if (!$employee) {
+                    // Try GG/101
+                    $employee = Employee::where('device_emp_code', 'GG/' . $intVal)->first();
+                }
+                if (!$employee) {
+                    // Try GG/005
+                    $ggPadded = 'GG/' . str_pad($intVal, 3, '0', STR_PAD_LEFT);
+                    $employee = Employee::where('device_emp_code', $ggPadded)->first();
                 }
             }
         }
@@ -236,6 +288,7 @@ class PunchImportService
         foreach ($punches as $punch) {
             // Re-run process logic to find employee
             // We construct a mock raw object
+            // Use generic fields mapped in processPunch
             $raw = (object) [
                 'device_emp_code' => $punch->device_emp_code,
                 'punch_time' => $punch->punch_time,
