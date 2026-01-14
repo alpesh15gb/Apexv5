@@ -121,14 +121,15 @@ Route::get('/debug/relink', function () {
     return "Relinked $count punches. Triggered attendance recalc for today.";
 });
 
-Route::get('/debug/force-sync', function () {
+Route::get('/debug/force-sync', function (\Illuminate\Http\Request $request) {
     $service = app(\App\Services\PunchImportService::class);
-    $startDate = now()->subDays(30);
+    $days = $request->input('days', 30);
+    $startDate = now()->subDays($days);
 
     // Force import skipping incremental check
     $service->importPunches($startDate);
 
-    return "Force imported punches from " . $startDate->toDateString() . ". Attendance recalculation triggered automatically.";
+    return "Force imported punches from " . $startDate->toDateString() . " ($days days). Attendance recalculation triggered automatically.";
 });
 
 Route::get('/debug/status', function () {
