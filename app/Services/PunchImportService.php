@@ -57,14 +57,13 @@ class PunchImportService
                     Log::info("Fetching from Etime table: $tableName");
                     DB::connection('sqlsrv')->table($tableName)
                         ->where('LogDate', '>', $startTime)
-                        ->orderBy('LogDate', 'asc')
-                        ->chunk(500, function ($punches) use (&$affectedDates) {
+                        ->chunkById(500, function ($punches) use (&$affectedDates) {
                             foreach ($punches as $punch) {
                                 $this->processPunch($punch);
                                 $date = Carbon::parse($punch->LogDate)->toDateString();
                                 $affectedDates[$date] = true;
                             }
-                        });
+                        }, 'DeviceLogId', 'DeviceLogId');
                 }
             }
 
